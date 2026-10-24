@@ -1,59 +1,46 @@
-# การแยกระบบและป้องกันผลกระทบกับระบบเดิม
+# การแยกระบบ
 
-ตรวจจากสำเนา source `drivekup01/School-Budget` วันที่ 25 ตุลาคม 2569 การตรวจนี้ยังไม่ใช่การตรวจสถานะฐาน production โดยตรง
+## เป้าหมายที่เจ้าของอนุมัติ
 
-## สิ่งที่พบ
+ใช้ Firebase โปรเจกต์ `school-budget-3e69d` ฐาน `(default)` ร่วมกับระบบเดิม โดยแยกชุดข้อมูลด้วย prefix attendance_
+ยืนยันจาก Console วันที่ 25 ตุลาคม 2569: Standard edition, Firestore native, asia-southeast1
+Firebase CLI ของเครื่องยังไม่ได้ login จึงยังไม่ deploy production ผ่าน CLI
 
-- โปรเจกต์ Firebase ที่ระบุใน config: `school-budget-3e69d`
-- ฝั่งเว็บงบประมาณเรียก `getFirestore(app)` โดยไม่ระบุ database ID จึงชี้ `(default)`
-- Auth ใช้ชื่อ Firebase app `school-budget` และ Google provider
-- Firestore Rules เดิมมีทั้ง `budget_*`, `procurement_*` และปิด paths อื่นไว้
-- `firebase.json` เดิมชี้ไฟล์ Rules ของระบบเดิม และ Functions codebase `school-budget`
-- บางข้อมูลภายในงบประมาณอ่าน/เขียนผ่าน `budgetApi` ไม่ใช่ client Firestore โดยตรง
-- การคัดลอก Rules ของระบบใหม่ไป deploy ทับ `(default)` อาจตัดสิทธิ์ของระบบเดิม จึงไม่ทำ
+## โครงสร้างใหม่
 
-## ทางเลือก
+- attendance_teachers/{uid}: active, email, name — บัญชีครูที่อนุมัติ อ่านเฉพาะเจ้าตัว
+- attendance_access/{uid}/classes/{classId}: ACL รายห้อง — ครูแก้ไขเองไม่ได้
+- attendance_classes/{classId}/students/{studentId}: รายชื่อนักเรียน — อ่านตาม ACL เท่านั้น
+- attendance_assignments/{id}: งานเข้าแถว/คาบสอน/สอนแทน — teacherUid ผูกกับ Firebase Auth UID
+- attendance_assignments/{id}/days/{YYYYMMDD}/marks/{studentId}: ผลรายคน
+- …/marks/{studentId}/history/{revision}: ประวัติ immutable ที่ต้องบันทึกพร้อมผลทุกครั้ง
+- attendance_behavior/{eventId}: รายการเพิ่ม–ลดคะแนนที่แก้หรือลบจาก browser ไม่ได้
 
-| รูปแบบ | ข้อดี | สิ่งที่ยังร่วมกัน |
-|---|---|---|
-| โปรเจกต์เดิม + named database `attendance` | แยกข้อมูล Rules และ indexes; Google UID ชุดเดียวกัน | Authentication, project settings, IAM และ billing บางส่วน |
-| โปรเจกต์ใหม่ | แยกข้อมูล Rules billing และ project settings มากกว่า | ใช้อีเมล Google เดิมได้ แต่ต้อง login / มอบหมายสิทธิ์ใหม่ และ UID อาจต่างกัน |
-| `(default)` เดิม + collection prefixes | เปลี่ยนโครงสร้างน้อย | Rules ของฐานและความเสี่ยง deploy ทับร่วมกัน ไม่แนะนำตามความกังวลนี้ |
+ห้องและคาบ provision จากผู้ดูแลเท่านั้น ห้าม client เพิ่มสิทธิ์ตัวเอง
+คาบตามตารางจำกัดวันในสัปดาห์และช่วงอายุ assignment สอนแทนจำกัดวันมอบหมาย
+ข้อมูลเข้าแถวกับรายวิชาอยู่คนละ assignment และไม่เขียนทับกัน
 
-**การแยกฐานในโปรเจกต์เดิมไม่ได้แยกความเสี่ยงทุกอย่าง** เช่น ปิด Google provider หรือปรับ IAM ระดับโปรเจกต์ยังกระทบหลายระบบได้
-Firebase ระบุว่าฐานเพิ่มเติมในโปรเจกต์ต้องเปิด billing; ไม่ควรเลือกทางนี้เพียงเพื่อเลี่ยงการเข้าสู่ระบบซ้ำ โดยไม่ตกลงค่าใช้จ่ายก่อน
+## กฎเดิมและการ deploy
 
-อ้างอิงทางการ:
-- https://firebase.google.com/docs/firestore/manage-databases
-- https://firebase.google.com/docs/firestore/pricing
+กฎต้นฉบับที่เจ้าของส่งมา ถูกเก็บสำรองและเพิ่มเฉพาะบล็อก BEGIN SCHOOL ATTENDANCE v1 ก่อน catch-all deny
+สคริปต์ merge-rules.mjs ตรวจย้อนกลับว่าเมื่อถอดบล็อกใหม่แล้ว ได้กฎเดิมตรงทุกตัวอักษรหลัง normalize CRLF
+SHA256 ของต้นฉบับ normalized: 9501bea6b663b82a33428fd3854a4978f63d3a201222708eddfe628150cc157c
+ไม่ได้แก้กฎงบประมาณ/จัดซื้อเดิม หรือ Functions budgetApi
 
-## สิ่งที่โค้ดรุ่นนี้ทำ
+เก็บ Rules รวมสำหรับ production ใน repo School-Budget จุดเดียว ไม่เพิ่ม root Firebase deployment config ใน repo เช็คชื่อ
+ถ้ามีการแก้ Rules บน Console หรือ repo อื่นหลังจาก snapshot นี้ ต้องนำมารวมก่อน Publish
+ไฟล์ fixture ใน firebase-tests มีไว้ทดสอบ regression เท่านั้น ห้าม deploy fixture ไป production
 
-- `settings.databaseReady = false` ทำให้ระบบปกติไม่อ่าน/เขียน Firestore
-- client ตรวจว่า databaseId ต้องไม่ว่างและต้องไม่ใช่ `(default)`
-- ข้อมูลสมมติแยกใน `js/demo.js` โหลดเฉพาะ `?demo=1`; ไม่ seed เข้า Firebase
-- ไม่เรียก `budgetApi`, ไม่เขียน `budget_*` หรือ `procurement_*`
-- ไม่มี Firebase CLI deployment config และไม่มี automated Firebase deployment
-- ไม่สร้าง role/assignment จาก browser; ผู้ดูแลต้อง provision จาก trusted environment ในขั้นต่อไป
-- Google login ใช้ app name/config เดิมบน origin เดียวกัน จึงเตรียม reuse session ได้; session จริงยังต้องตรวจบนโดเมนปลายทาง
+การแยกชื่อ collection ไม่ใช่การแยก project: Authentication, Rules ของฐาน และ billing ยังร่วมกัน
+จึงต้องตรวจ Rules รวมและใช้ขั้นตอน deploy จุดเดียวเสมอ
 
-## Gate ก่อนเปิดบันทึกจริง
+## ข้อจำกัดรุ่นเริ่มต้น
 
-1. ตรวจฐานเป้าหมายและ edition ด้วยบัญชีผู้ดูแลที่ได้รับอนุญาต
-2. ตรวจ quota / billing และตกลงตำแหน่งจัดเก็บ
-3. ออกแบบ schema จริงหลังยืนยัน edition แยก identity, assignment, roster, morning, subject, behavior, audit และ export scope
-4. deploy Rules เฉพาะ database ID เป้าหมาย ด้วย config ที่มีแต่ฐานใหม่
-5. ห้ามใช้ blanket `firebase deploy` ใน workspace งบประมาณเพื่อเพิ่มระบบนี้
-6. Security Rules ต้องบังคับครูประจำชั้น / รายวิชา / วันสอนแทน และ validation ที่ฐานข้อมูล
-7. ทดสอบทั้ง positive และ negative cases พร้อม audit และ concurrent edits
-8. ทดลองกับข้อมูลทดสอบในฐานใหม่ ยืนยันว่าการอ่านเขียนงบประมาณยังปกติ แล้วค่อยเปิด adapter จริง
+- ไม่เปิด production adapter จน Publish Rules และจัดสิทธิ์ครบ
+- บันทึกเป็น transaction ละ 5 คน พร้อม revision ป้องกันเขียนทับจากหน้าจอเก่า
+- ทั้งห้องไม่ atomic; แจ้งกรณีสำเร็จบางส่วนและให้โหลดใหม่ก่อน retry
+- ประวัติความประพฤติเป็นรายการของครูผู้บันทึกเอง ยังไม่ใช่ยอดคะแนนกลางทั้งโรงเรียน
+- รายงานใช้รายชื่อปัจจุบัน จึงควรรักษา student ID ให้คงเดิมและไม่ลบประวัตินักเรียนเมื่อย้ายห้อง
+- การเชื่อมตารางสอนจริงและการนำเข้านักเรียนยังอยู่ขั้นถัดไป
 
-## การ์ดหน้า School-Portal
-
-เพิ่มการ์ดที่ repo `School-Portal` หลัง URL ใหม่ใช้งานได้ โดยแก้เฉพาะหน้า portal และ style ที่จำเป็น
-ไม่คัดลอกหรือย้ายหน้าระบบงบประมาณเข้ามา
-ชื่อการ์ด: `ระบบเช็คชื่อและความประพฤติ`
-คำอธิบาย: `เช็คชื่อเข้าแถว รายวิชา และติดตามความประพฤตินักเรียน`
-ปลายทางที่คาดหวัง: `https://drivekup01.github.io/School-Attendance/`
-
-ยังไม่ได้แก้ repo School-Portal ในรุ่นนี้ เพื่อลดการส่งครูไปยังระบบที่ยังไม่เปิดข้อมูลจริง
+อ้างอิง: https://firebase.google.com/docs/rules/manage-deploy

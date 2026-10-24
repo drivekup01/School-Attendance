@@ -1,0 +1,11 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+const [baseline,output]=process.argv.slice(2);
+if(!baseline||!output)throw Error('Usage: node scripts/merge-rules.mjs BASELINE OUTPUT');
+const old=readFileSync(baseline,'utf8').replace(/\r\n/g,'\n'),fragment=readFileSync(new URL('../firebase/attendance.rules.fragment',import.meta.url),'utf8');
+const anchor='    match /{other=**} { allow read, write: if false; }';
+if(old.split(anchor).length!==2||old.includes('BEGIN SCHOOL ATTENDANCE'))throw Error('Unexpected baseline; do not merge automatically');
+const merged=old.replace(anchor,()=>fragment+'\n'+anchor);
+if(merged.replace(fragment+'\n',()=> '')!==old)throw Error('Legacy rules were changed');
+writeFileSync(output,merged,'utf8');
+console.log(JSON.stringify({legacyUnchanged:true,baselineSha256:createHash('sha256').update(old).digest('hex'),output}));

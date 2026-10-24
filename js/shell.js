@@ -11,7 +11,7 @@ export function shell(page){
   const b=event.currentTarget;b.disabled=true;
   try{const F=await import('./firebase-client.js');const u=await F.currentUser();if(u){await F.logout();location.reload();}else{await F.login();location.reload();}}catch(error){notify(friendlyError(error),true);}finally{b.disabled=false;}
  });
- if(!isDemo)import('./firebase-client.js').then(async F=>{const u=await F.currentUser();if(u){setIdentity({name:u.displayName});document.querySelector('#userRole').textContent='เข้าสู่ระบบแล้ว · รอมอบหมายสิทธิ์';document.querySelector('#authButton').textContent='ออกจากระบบ';}}).catch(()=>{});
+ if(!isDemo)import('./firebase-client.js').then(async F=>{const u=await F.currentUser();if(u){setIdentity({name:u.displayName});document.querySelector('#userRole').textContent=settings.databaseReady?'เข้าสู่ระบบแล้ว':'เข้าสู่ระบบแล้ว · รอมอบหมายสิทธิ์';document.querySelector('#authButton').textContent='ออกจากระบบ';}}).catch(()=>{});
  window.addEventListener('offline',()=>notify('ออฟไลน์อยู่ กรุณาเชื่อมต่ออินเทอร์เน็ตก่อนบันทึกข้อมูลจริง',true));
 }
 export function setIdentity(user){if(user)document.querySelector('#userName').textContent=user.name||'ครู';}

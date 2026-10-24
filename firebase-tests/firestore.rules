@@ -1,0 +1,348 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function userPath() { return /databases/$(database)/documents/procurement_users/$(request.auth.uid); }
+    function member() { return signedIn() && exists(userPath()); }
+    function profile() { return get(userPath()).data; }
+    function admin() { return member() && profile().role == 'admin'; }
+    function owns(dept) { return member() && (admin() || (profile().role == 'staff' && profile().departmentId == dept)); }
+    function validDept(v) { return v is string && v.size() > 0 && v.size() <= 80; }
+    function amount(v) { return v is number && v >= 0 && v <= 1000000000; }
+    function projectMatches(p,dept) {
+      return exists(/databases/$(database)/documents/procurement_projects/$(p)) &&
+      get(/databases/$(database)/documents/procurement_projects/$(p)).data.departmentId == dept;
+    }
+    match /procurement_users/{uid} {
+      allow read: if member() && (admin() || request.auth.uid == uid);
+      // User accounts and role assignments are created by admin in Firebase Console/Admin SDK.
+      allow create, update, delete: if false;
+    }
+    match /procurement_projects/{projectId} {
+      allow read: if member();
+      allow create: if member() && owns(request.resource.data.departmentId) &&
+        request.resource.data.keys().hasOnly(['name','fiscalYear','departmentId','budget','createdBy','createdAt']) &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.name is string && request.resource.data.name.size() > 0 &&
+        request.resource.data.name.size() <= 250 && validDept(request.resource.data.departmentId) &&
+        request.resource.data.fiscalYear is int && request.resource.data.fiscalYear >= 2500 &&
+        request.resource.data.fiscalYear <= 2700 && amount(request.resource.data.budget) &&
+        request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+    match /procurement_jobs/{jobId} {
+      allow read: if member();
+      allow create: if member() && owns(request.resource.data.departmentId) &&
+        projectMatches(request.resource.data.projectId,request.resource.data.departmentId) &&
+        request.resource.data.keys().hasOnly(['projectId','departmentId','title','budget','referencePrice','approved','status','createdBy','createdAt']) &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.title is string && request.resource.data.title.size() > 0 &&
+        request.resource.data.title.size() <= 250 &&
+        amount(request.resource.data.budget) && amount(request.resource.data.referencePrice) &&
+        amount(request.resource.data.approved) && request.resource.data.status == 'draft' &&
+        request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+    // Immutable user-owned copies, separate from uploaded PDF documents.
+    // Field layout can be changed by Admin only; all members may read it.
+    match /procurement_pdf_mappings/{departmentId} {
+      allow read: if member();
+      allow create, update: if admin() &&
+        request.resource.data.departmentId == departmentId &&
+        request.resource.data.fields is list &&
+        request.resource.data.fields.size() <= 300 &&
+        request.resource.data.templatePath is string &&
+        request.resource.data.updatedBy == request.auth.uid &&
+        request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    match /procurement_document_copies/{copyId} {
+      allow read: if member();
+      allow create: if member() &&
+        (request.resource.data.departmentId == "general" || owns(request.resource.data.departmentId)) &&
+        request.resource.data.keys().hasOnly(['schemaVersion','templateId','title','departmentId','createdBy','createdAt','values','items','selectedPages','documentCount']) &&
+        request.resource.data.schemaVersion == 1 &&
+        request.resource.data.templateId in ['first-set-v1', 'first-set-word16-v1', 'first-set-pdf11-v1'] &&
+        request.resource.data.documentCount in [10, 11, 16] &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.createdAt == request.time &&
+        validDept(request.resource.data.departmentId) &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() > 0 &&
+        request.resource.data.title.size() <= 250 &&
+        request.resource.data.values is map &&
+        request.resource.data.values.size() <= 75 &&
+        request.resource.data.values.department == request.resource.data.departmentId &&
+        request.resource.data.items is list &&
+        request.resource.data.items.size() <= 80 &&
+        request.resource.data.selectedPages is list &&
+        request.resource.data.selectedPages.size() <= 16;
+      allow update, delete: if false;
+    }
+    match /procurement_documents/{documentId} {
+      allow read: if member();
+      allow create: if member() && owns(request.resource.data.departmentId) &&
+        projectMatches(request.resource.data.projectId,request.resource.data.departmentId) &&
+        exists(/databases/$(database)/documents/procurement_jobs/$(request.resource.data.jobId)) &&
+        get(/databases/$(database)/documents/procurement_jobs/$(request.resource.data.jobId)).data.projectId == request.resource.data.projectId &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.status == 'uploading' &&
+        request.resource.data.storagePath == 'procurement/projects/' + request.resource.data.projectId + '/files/' + documentId &&
+        request.resource.data.keys().hasOnly(['projectId','jobId','departmentId','title','filename','storagePath','status','createdBy','createdAt']) &&
+        request.resource.data.createdAt == request.time;
+      allow update: if member() && owns(resource.data.departmentId) &&
+        resource.data.createdBy == request.auth.uid &&
+        resource.data.status == 'uploading' && request.resource.data.status == 'ready' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow delete: if false;
+    }
+    // FY2570 school procurement dashboard: separate from legacy collections.
+    match /procurement_v2_departments/{departmentId} {
+      allow read: if member();
+      allow create: if admin() &&
+        request.resource.data.fiscalYear == '2570' &&
+        request.resource.data.id is string &&
+        request.resource.data.name is string &&
+        request.resource.data.budget is number;
+      allow update: if admin() &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.fiscalYear == resource.data.fiscalYear;
+      allow delete: if false;
+    }
+    match /procurement_v2_projects/{projectId} {
+      allow read: if member();
+      allow create: if admin() &&
+        request.resource.data.fiscalYear == '2570' &&
+        request.resource.data.id is int &&
+        request.resource.data.department is string &&
+        request.resource.data.name is string &&
+        request.resource.data.activities is list &&
+        request.resource.data.activities.size() <= 100;
+      allow update: if admin() &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.fiscalYear == resource.data.fiscalYear;
+      allow delete: if false;
+    }
+    match /procurement_v2_transactions/{transactionId} {
+      allow read: if member();
+      allow create: if member() && owns(request.resource.data.department) &&
+        request.resource.data.keys().hasOnly(['fiscalYear','type','amount','date','department','projectId','activityId','note','createdBy','createdAt']) &&
+        request.resource.data.fiscalYear == '2570' &&
+        request.resource.data.type in ['income','expense'] &&
+        request.resource.data.amount is number &&
+        request.resource.data.amount > 0 &&
+        request.resource.data.amount <= 100000000 &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+    // New request editor. Keep legacy request docs readable/editable in draft stage.
+    function ownsV2(dept) {
+      return member() && (
+        admin() ||
+        (profile().role == 'staff' && (
+          profile().departmentId == dept ||
+          (profile().departmentId == 'budget' && dept == 'finance')
+        ))
+      );
+    }
+    function requestV2Valid(d) {
+      return d.keys().hasOnly([
+        'fiscalYear','department','projectId','activityId','title','requestedAmount',
+        'requestedDate','status','createdBy','createdAt','updatedAt','procurementType',
+        'procurementMethod','purpose','vendor','deliveryDate','deliveryDays',
+        'notes','preparedBy','items','details'
+      ]) &&
+      d.fiscalYear == '2570' &&
+      d.department is string &&
+      d.projectId is int &&
+      d.title is string && d.title.size() > 0 && d.title.size() <= 250 &&
+      d.requestedAmount is number && d.requestedAmount > 0 &&
+      d.requestedAmount <= 100000000 &&
+      d.requestedDate is string && d.requestedDate.size() == 10 &&
+      d.status in ['draft','prepared'] &&
+      d.get('items',[]) is list && d.get('items',[]).size() <= 80 &&
+      d.get('purpose','') is string && d.get('purpose','').size() <= 3000 &&
+      d.get('notes','') is string && d.get('notes','').size() <= 3000 &&
+      d.get('vendor','') is string && d.get('vendor','').size() <= 250 &&
+      d.get('details',{}) is map && d.get('details',{}).size() <= 70;
+    }
+    match /procurement_v2_requests/{requestId} {
+      allow read: if member();
+      allow create: if member() && ownsV2(request.resource.data.department) &&
+        requestV2Valid(request.resource.data) &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.createdAt == request.time &&
+        (!request.resource.data.keys().hasAny(['updatedAt']) ||
+          request.resource.data.updatedAt == request.time);
+      allow update: if member() && ownsV2(resource.data.department) &&
+        (admin() || resource.data.createdBy == request.auth.uid) &&
+        resource.data.status == 'draft' &&
+        request.resource.data.department == resource.data.department &&
+        request.resource.data.createdBy == resource.data.createdBy &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        requestV2Valid(request.resource.data) &&
+        request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+// Budget public_years {year:int,locked:bool,json:string,migrationId:string}.
+    // budget_users/{uid}: approved private identity, never client writable.
+    // Registers, documents, audit and operations are accessed via budgetApi only.
+    // All writes are server validated and financial changes are atomic.
+    function approvedBudgetUser() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && exists(/databases/$(database)/documents/budget_users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/budget_users/$(request.auth.uid)).data.active == true
+        && get(/databases/$(database)/documents/budget_users/$(request.auth.uid)).data.email == request.auth.token.email;
+    }
+    match /budget_public_years/{year} {
+      allow get, list: if true;
+      allow write: if false;
+    }
+    match /budget_users/{uid} {
+      allow get: if approvedBudgetUser() && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+    match /budget_registers/{id} { allow read, write: if false; }
+    match /budget_loans/{id} { allow read, write: if false; }
+    match /budget_operations/{id} { allow read, write: if false; }
+    match /budget_audit/{id} { allow read, write: if false; }
+    match /budget_documents/{id} { allow read, write: if false; }
+    // BEGIN SCHOOL ATTENDANCE v1
+    // Server-managed (no browser writes):
+    // attendance_teachers/{uid}: {active:bool,email:string,name:string}.
+    // attendance_access/{uid}/classes/{classId}: {active:bool,canRead:bool,
+    //   canMorning:bool,canSubject:bool,canBehavior:bool}.
+    // attendance_classes/{classId}/students/{studentId}: {code:string,name:string,number:int}.
+    // attendance_assignments/{assignmentId}: {teacherUid:string,active:bool,
+    //   kind:'morning'|'subject'|'substitute',classId:string,className:string,
+    //   subject:string,period:int,weekday:int(0=Sunday),from:timestamp,to:timestamp,
+    //   date:timestamp|null,time:string}. from/to/date are Bangkok midnights.
+    // Browser-written marks below assignments/{id}/days/{YYYYMMDD}/marks/{studentId}:
+    // {assignmentId,teacherUid,classId,studentId:string(1..100),day:timestamp,
+    // status:enum,note:string(0..300),revision:int(1..100000),
+    // createdAt:timestamp(immutable),updatedAt:timestamp(server time)}.
+    // Each mark requires an immutable, identical history/{revision} in the same transaction.
+    // attendance_behavior/{eventId}: {teacherUid,classId,studentId:string(1..100),
+    // day:timestamp,delta:int(-100..100 except 0),reason:string(1..300),createdAt:timestamp}.
+    // Behavior events are append-only. No totals or private teacher profiles are public.
+    // Existing budget/procurement rules above this block are intentionally preserved.
+    function attSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true &&
+        request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function attOwner(uid) { return attSignedIn() && request.auth.uid == uid; }
+    function attMember() {
+      return attSignedIn() &&
+        get(/databases/$(database)/documents/attendance_teachers/$(request.auth.uid)).data.active == true &&
+        get(/databases/$(database)/documents/attendance_teachers/$(request.auth.uid)).data.email == request.auth.token.email;
+    }
+    function attString(s, min, max) { return s is string && s.size() >= min && s.size() <= max; }
+    function attId(s) { return attString(s, 1, 100) && s.matches('^[A-Za-z0-9_-]+$'); }
+    function attAccess(classId) {
+      return get(/databases/$(database)/documents/attendance_access/$(request.auth.uid)/classes/$(classId)).data;
+    }
+    function attReadClass(classId) {
+      return attMember() && attAccess(classId).active == true && attAccess(classId).canRead == true;
+    }
+    function attAssignment(id) {
+      return get(/databases/$(database)/documents/attendance_assignments/$(id)).data;
+    }
+    function attOwnAssignment(id) {
+      return attMember() && attAssignment(id).active == true &&
+        attAssignment(id).teacherUid == request.auth.uid && attReadClass(attAssignment(id).classId);
+    }
+    function attMidnight(day) {
+      let local = day + duration.value(7, 'h');
+      return day is timestamp && day == timestamp.date(local.year(),local.month(),local.day()) - duration.value(7,'h');
+    }
+    function attDayKey(day) {
+      let local = day + duration.value(7,'h');
+      return string(local.year()*10000 + local.month()*100 + local.day());
+    }
+    function attAssignedDay(a, day) {
+      let local = day + duration.value(7,'h');
+      return attMidnight(day) && day <= request.time && day >= a.from && day <= a.to &&
+        (a.kind == 'morning' ||
+         (a.kind == 'subject' && a.weekday == local.dayOfWeek() % 7) ||
+         (a.kind == 'substitute' && a.date == day));
+    }
+    function attCanMark(a, day) {
+      return attAssignedDay(a, day) &&
+        ((a.kind == 'morning' && attAccess(a.classId).canMorning == true) ||
+         (a.kind in ['subject','substitute'] && attAccess(a.classId).canSubject == true));
+    }
+    function attValidMark(d, aid, dayKey, sid) {
+      return d.keys().hasAll(['assignmentId','teacherUid','classId','studentId','day','status','note','revision','createdAt','updatedAt']) &&
+        d.keys().hasOnly(['assignmentId','teacherUid','classId','studentId','day','status','note','revision','createdAt','updatedAt']) &&
+        attId(d.assignmentId) && d.assignmentId == aid && attId(d.teacherUid) && d.teacherUid == request.auth.uid &&
+        attId(d.studentId) && d.studentId == sid && attId(d.classId) && d.classId == attAssignment(aid).classId &&
+        d.day is timestamp && dayKey == attDayKey(d.day) &&
+        d.status in ['present','late','absent','leave'] && attString(d.note,0,300) &&
+        d.revision is int && d.revision >= 1 && d.revision <= 100000 &&
+        d.createdAt is timestamp && d.updatedAt is timestamp && d.updatedAt == request.time &&
+        exists(/databases/$(database)/documents/attendance_classes/$(d.classId)/students/$(sid)) &&
+        attCanMark(attAssignment(aid),d.day);
+    }
+    function attAuditMatches(aid, dayKey, sid, d) {
+      return getAfter(/databases/$(database)/documents/attendance_assignments/$(aid)/days/$(dayKey)/marks/$(sid)/history/$(string(d.revision))).data == d;
+    }
+    function attValidBehavior(d) {
+      return d.keys().hasAll(['teacherUid','classId','studentId','day','delta','reason','createdAt']) &&
+        d.keys().hasOnly(['teacherUid','classId','studentId','day','delta','reason','createdAt']) &&
+        attId(d.teacherUid) && d.teacherUid == request.auth.uid && attId(d.classId) && attId(d.studentId) &&
+        d.day is timestamp && attMidnight(d.day) && d.day <= request.time &&
+        d.delta is int && d.delta >= -100 && d.delta <= 100 && d.delta != 0 &&
+        attString(d.reason,1,300) && d.createdAt is timestamp && d.createdAt == request.time &&
+        attReadClass(d.classId) && attAccess(d.classId).canBehavior == true &&
+        exists(/databases/$(database)/documents/attendance_classes/$(d.classId)/students/$(d.studentId));
+    }
+    match /attendance_teachers/{uid} {
+      allow get: if attOwner(uid) && attMember();
+      allow list, create, update, delete: if false;
+    }
+    match /attendance_access/{uid}/classes/{classId} {
+      allow read: if attOwner(uid) && attMember();
+      allow write: if false;
+    }
+    match /attendance_classes/{classId}/students/{sid} {
+      allow read: if attReadClass(classId);
+      allow write: if false;
+    }
+    match /attendance_assignments/{aid} {
+      // Queries must include teacherUid == current UID and active == true.
+      allow read: if attMember() && resource.data.teacherUid == request.auth.uid && resource.data.active == true;
+      allow write: if false;
+      match /days/{dayKey}/marks/{sid} {
+        allow read: if attOwnAssignment(aid);
+        allow create: if attOwnAssignment(aid) && attValidMark(request.resource.data,aid,dayKey,sid) &&
+          request.resource.data.revision == 1 && request.resource.data.createdAt == request.time &&
+          attAuditMatches(aid,dayKey,sid,request.resource.data);
+        allow update: if attOwnAssignment(aid) && attValidMark(request.resource.data,aid,dayKey,sid) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.day == resource.data.day &&
+          request.resource.data.revision == resource.data.revision + 1 &&
+          attAuditMatches(aid,dayKey,sid,request.resource.data);
+        allow delete: if false;
+        match /history/{version} {
+          allow read: if attOwnAssignment(aid);
+          allow create: if attOwnAssignment(aid) && attValidMark(request.resource.data,aid,dayKey,sid) &&
+            version == string(request.resource.data.revision) &&
+            getAfter(/databases/$(database)/documents/attendance_assignments/$(aid)/days/$(dayKey)/marks/$(sid)).data == request.resource.data;
+          allow update, delete: if false;
+        }
+      }
+    }
+    match /attendance_behavior/{id} {
+      // Teachers read their own entries only; no global score is exposed.
+      allow read: if attMember() && resource.data.teacherUid == request.auth.uid && attReadClass(resource.data.classId);
+      allow create: if attMember() && attValidBehavior(request.resource.data);
+      allow update, delete: if false;
+    }
+    // END SCHOOL ATTENDANCE v1
+
+    match /{other=**} { allow read, write: if false; }
+  }
+}
