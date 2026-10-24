@@ -1,0 +1,5 @@
+import {writeFileSync} from 'node:fs';
+const pages=[['index','หน้าหลัก','home'],['morning','เช็คชื่อเข้าแถวเช้า','morning'],['subject','เช็คชื่อรายวิชา','subject'],['behavior','คะแนนความประพฤติ','behavior'],['reports','รายงานและส่งออก','reports']];
+for(const [name,title,script] of pages){const css=['morning','subject'].includes(name)?'attendance':script;writeFileSync(new URL(`../${name}.html`,import.meta.url),`<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#663394"><meta name="description" content="ระบบเช็คชื่อเข้าแถว รายวิชา และความประพฤติ โรงเรียนค่ายบางระจันวิทยาคม"><title>${title} · ระบบเช็คชื่อ</title><link rel="icon" href="assets/school-logo.png" type="image/png"><link rel="stylesheet" href="css/theme.css"><link rel="stylesheet" href="css/${css}.css"></head><body><div id="shell"><p class="loading">กำลังเปิดระบบเช็คชื่อ…</p></div><noscript>กรุณาเปิด JavaScript เพื่อใช้งานระบบเช็คชื่อ</noscript><script type="module" src="js/${script}.js"></script></body></html>\n`);}
+console.log('Generated 5 separate HTML pages.');

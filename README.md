@@ -76,4 +76,3 @@ repo นี้ตั้งชื่อฐานที่เสนอเป็น
 - Firebase Web SDK 12.4.0 (CDN ของ Google) สำหรับ Auth ที่เตรียมไว้
 - ExcelJS 4.4.0 (MIT) โหลดเมื่อส่งออก Excel เท่านั้น: https://github.com/exceljs/exceljs
 - ไม่เก็บนักเรียนจริง อีเมลครูจริง หรือ service-account keys ใน repo
-
