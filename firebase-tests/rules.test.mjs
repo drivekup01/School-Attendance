@@ -60,3 +60,29 @@ test('real store adapter saves across chunks, reloads, rejects stale revisions a
  await store.addBehavior({classId:'c1',studentId:'s8',date:'2020-10-19',delta:-5,reason:'Late to class'});const behavior=await store.report('2020-10-19','2020-10-19','behavior');assert.ok(behavior.some(e=>e.studentId==='s8'&&e.delta===-5&&e.studentName==='Synthetic 8'));
  const report=await store.report('2020-10-19','2020-10-19','subject');assert.ok(report.some(r=>r.assignmentId==='integration'&&r.marks.s8.status==='late'));delete globalThis.attIntegrationClient;
 });
+test('admin role cannot be self-granted and private teacher emails remain owner-only',async()=>{
+ await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'attendance_teachers/admin'),{active:true,email:'admin@example.com',name:'Administrator',role:'admin'});});
+ const db=auth('admin');await assertSucceeds(getDocs(collection(db,'attendance_assignments')));await assertSucceeds(getDocs(collection(db,'attendance_classes/c2/students')));
+ await assertFails(getDoc(doc(db,'attendance_teachers/t1')));await assertFails(getDocs(collection(db,'attendance_teachers')));await assertFails(updateDoc(doc(auth('t1'),'attendance_teachers/t1'),{role:'admin'}));await assertFails(setDoc(doc(auth('t2'),'attendance_teachers/elevate'),{active:true,email:'t2@example.com',role:'admin'}));
+ await assertFails(getDocs(collection(auth('t1'),'attendance_directory')));await assertFails(mark(db,'s8',{teacherUid:'admin'}));
+});
+test('admin store creates classes, name-only directory and scoped assignments atomically',async()=>{
+ const sourceURL=new URL(process.env.ATTENDANCE_STORE_URL||'../js/store.js',import.meta.url),adminURL=new URL('admin-store.js',sourceURL),coreURL=new URL('core.js',sourceURL).href;
+ const source=readFileSync(adminURL,'utf8').replace("import {firebase} from './firebase-client.js';","const firebase=async()=>globalThis.attAdminClient;").replace("import {settings} from './settings.js';","const settings={databaseReady:true};").replace("from './core.js'",`from '${coreURL}'`);
+ globalThis.attAdminClient={auth:{currentUser:{uid:'admin'}},db:auth('admin'),F:await import('firebase/firestore')};
+ const {adminStore}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+ await adminStore.addClass({id:'adminroom',name:'M3/1',academicYear:2569,term:2});await assert.rejects(adminStore.addClass({id:'adminroom',name:'M3/1',academicYear:2569,term:2}),/มีแล้ว/);
+ await adminStore.addTeacher('t1','Teacher One');await assertFails(setDoc(doc(auth('admin'),'attendance_directory/t1'),{name:'Forged name',active:true,updatedAt:serverTimestamp(),updatedBy:'admin'}));
+ const aid=await adminStore.assign({teacherUid:'t1',classId:'adminroom',kind:'morning',subject:'Morning',period:0,weekday:1,from:'2020-01-01',to:'2030-12-31',time:'07:50',grantBehavior:false});
+ const acl=(await getDoc(doc(auth('admin'),'attendance_access/t1/classes/adminroom'))).data();assert.equal(acl.canMorning,true);assert.equal(acl.canSubject,false);assert.equal(acl.canBehavior,false);
+ const list=await adminStore.list();assert.ok(list.classes.some(c=>c.id==='adminroom'));assert.ok(list.assignments.some(a=>a.id===aid));assert.deepEqual(Object.keys(list.teachers[0]).sort(),['active','id','name','updatedAt','updatedBy'].sort());
+ await assertFails(updateDoc(doc(auth('admin'),'attendance_assignments/'+aid),{teacherUid:'t2',updatedAt:serverTimestamp(),updatedBy:'admin'}));await assertFails(updateDoc(doc(auth('t1'),'attendance_assignments/'+aid),{active:false,updatedAt:serverTimestamp(),updatedBy:'t1'}));
+ await adminStore.deactivate(aid);assert.equal((await getDoc(doc(auth('admin'),'attendance_assignments/'+aid))).data().active,false);
+ await adminStore.revokeClass('t1','adminroom');await assertFails(getDocs(collection(auth('t1'),'attendance_classes/adminroom/students')));delete globalThis.attAdminClient;
+});
+test('admin create/update validators reject schema pollution, overlong fields, types and phantom targets',async()=>{
+ const db=auth('admin'),room=(await getDoc(doc(db,'attendance_classes/adminroom'))).data();for(const patch of [{name:'x'.repeat(81)},{term:'1'},{academicYear:1},{active:'true'},{extra:true},{createdAt:day},{updatedBy:'t1'}])await assertFails(setDoc(doc(db,'attendance_classes/adminroom'),{...room,updatedAt:serverTimestamp(),...patch}));
+ await assertFails(setDoc(doc(auth('t1'),'attendance_classes/fake'),{...room,name:'Fake',createdAt:serverTimestamp(),updatedAt:serverTimestamp(),updatedBy:'t1'}));await assertFails(deleteDoc(doc(db,'attendance_classes/adminroom')));
+ await assertFails(setDoc(doc(db,'attendance_access/missing/classes/adminroom'),{active:true,canRead:true,canMorning:true,canSubject:true,canBehavior:true,updatedAt:serverTimestamp(),updatedBy:'admin'}));
+ const a=(await getDocs(query(collection(db,'attendance_assignments'),where('classId','==','adminroom')))).docs[0];for(const patch of [{subject:'x'.repeat(161)},{period:21},{weekday:7},{to:day,from:to},{date:day},{kind:'fake'},{className:'Forged room'},{extra:true}])await assertFails(setDoc(doc(db,'attendance_assignments/'+a.id),{...a.data(),updatedAt:serverTimestamp(),...patch}));
+});

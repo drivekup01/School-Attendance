@@ -4,12 +4,12 @@
 
 ## สถานะล่าสุด
 
-- หน้าแรก / เข้าแถวเช้า / รายวิชาและสอนแทน / ความประพฤติ / รายงาน แยก HTML, JS และ CSS
+- หน้าแรก / เข้าแถวเช้า / รายวิชาและสอนแทน / ความประพฤติ / รายงาน / ผู้ดูแล แยก HTML, JS และ CSS
 - โหมดทดลอง `?demo=1` ใช้รายชื่อสมมติ บันทึกเฉพาะ sessionStorage ของแท็บ ไม่ส่งข้อมูลทดลองเข้า Firebase
 - ส่งออก UTF-8 CSV และไฟล์ .xlsx จริง; ยังเป็นรูปแบบทั่วไปจนกว่าจะมีต้นแบบ SGS
 - เตรียม Google login และ real data adapter สำหรับฐาน `(default)` โปรเจกต์ `school-budget-3e69d`
 - ชุดข้อมูลใหม่ทุกชุดขึ้นต้น `attendance_` ไม่อ่านหรือเขียน `budget_*` / `procurement_*`
-- **databaseReady ยังเป็น false** จนเจ้าของเผยแพร่ Rules ชุดรวมและ provision บัญชี/สิทธิ์
+- **databaseReady เป็น true** แล้ว ต้องเผยแพร่ Rules v2 และ provision บัญชี/สิทธิ์ก่อนใช้จริง
 - ยังไม่มีข้อมูลนักเรียนจริง ยังไม่ได้ทดสอบ OAuth และบันทึกข้อมูลจริงบน production
 
 ## เปิดในเครื่อง
@@ -46,8 +46,8 @@ repo นี้ไม่มี firebase.json ระดับ root และไม
 `firebase-tests/` เป็น fixture สำหรับ emulator ใช้โปรเจกต์ `demo-school-attendance` เท่านั้น
 เมื่อ Rules เดิมเปลี่ยน ต้องดึงชุดล่าสุดมารวมใหม่ก่อน deploy ทุกครั้ง
 
-Browser สร้างครู ห้อง ตารางสอน รายชื่อนักเรียน หรือ ACL เองไม่ได้
-ผู้ดูแล provision ข้อมูลเหล่านี้ผ่าน trusted admin environment / Firebase Console
+ครูทั่วไปสร้างบัญชี ห้อง assignment รายชื่อนักเรียน หรือ ACL เองไม่ได้ ผู้ดูแลที่มี role admin จัดการห้อง/assignment/ACL ได้ตาม validator
+บัญชีครู บทบาท และรายชื่อนักเรียนยัง provision ผ่าน trusted admin environment / Firebase Console
 Marks บันทึกครั้งละไม่เกิน 5 นักเรียนต่อ transaction พร้อม immutable history ทุก revision
 การบันทึกทั้งห้องไม่ใช่ transaction เดียว หากสำเร็จบางส่วนแล้วล้มเหลวจะแจ้งให้โหลดใหม่
 
@@ -73,10 +73,12 @@ URL ที่คาดหวัง: https://drivekup01.github.io/School-Attendan
 3. Provision attendance_teachers/{Google UID} และมอบหมายห้อง/คาบ/ACL ผ่านผู้ดูแล
 4. เพิ่มรายชื่อนักเรียนภายหลัง พร้อมเชื่อมแหล่งตารางสอนจริง
 5. ตกลงคะแนนตั้งต้น เกณฑ์ สิทธิ์ความประพฤติ และนโยบายแก้ย้อนหลัง
-6. ทดสอบข้อมูลจริงในขอบเขตเล็ก แล้วค่อยเปิด databaseReady
+6. ทดสอบ Google login และข้อมูลจริงในขอบเขตเล็กก่อนใช้วงกว้าง
 
 ## เครดิต
 
 โลโก้และ Firebase public web config จาก School-Budget ของโรงเรียน
 Firebase browser SDK 12.4.0 ใช้ Google CDN · ExcelJS 4.4.0 (MIT) โหลดจาก jsDelivr เมื่อส่งออก Excel
 ไม่ใส่ service account keys หรือข้อมูลนักเรียนจริงใน repo
+
+รายละเอียดส่วนผู้ดูแล: docs/ADMIN.md

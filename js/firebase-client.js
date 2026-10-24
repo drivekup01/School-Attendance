@@ -23,7 +23,7 @@ export const real={
    const {auth,db,F}=await firebase();if(!auth.currentUser)return null;
    const snap=await F.getDocFromServer(F.doc(db,'attendance_teachers',auth.currentUser.uid));
    if(!snap.exists()||!snap.data().active)throw Error('บัญชีนี้ยังไม่ได้รับสิทธิ์ระบบเช็คชื่อ กรุณาติดต่อผู้ดูแล');
-   return {...snap.data(),uid:auth.currentUser.uid};
+   const p=snap.data();return {...p,role:p.role==='admin'?'admin':'teacher',uid:auth.currentUser.uid};
  },
  async assignments(){return (await import('./store.js')).store.assignments();},
  async students(classId){return (await import('./store.js')).store.students(classId);},

@@ -9,7 +9,7 @@ npm install
 npx -y firebase-tools@latest emulators:exec --only firestore --project demo-school-attendance --config firebase.json "node --test rules.test.mjs"
 ```
 
-14 กลุ่มทดสอบครอบคลุม profile/ACL/assignment scope, mark+audit atomicity, timetable/date,
+17 กลุ่มทดสอบครอบคลุม profile/ACL/assignment scope, mark+audit atomicity, timetable/date,
 validation on create/update, immutable history, append-only behavior และ legacy budget/procurement regression พร้อมทดสอบ real store adapter กับ emulator
 ชุดทดสอบนี้ไม่เขียนฐานจริง
 
