@@ -1,6 +1,6 @@
-import {firebase} from './firebase-client.js';
-import {settings} from './settings.js';
-import {validDate,validateMarks,validateRange,today,assignmentsOn} from './core.js';
+import {firebase} from './firebase-client.js?v=20261025-firebase2';
+import {settings} from './settings.js?v=20261025-firebase2';
+import {validDate,validateMarks,validateRange,today,assignmentsOn} from './core.js?v=20261025-firebase2';
 const C=Object.freeze({teachers:'attendance_teachers',access:'attendance_access',assignments:'attendance_assignments',classes:'attendance_classes',behavior:'attendance_behavior'});
 const validId=id=>typeof id==='string'&&/^[A-Za-z0-9_-]{1,100}$/.test(id);
 const key=date=>date.replaceAll('-','');

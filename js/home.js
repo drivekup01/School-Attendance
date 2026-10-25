@@ -1,7 +1,7 @@
-import {boot,heading,empty} from './shell.js';
-import {isDemo,url} from './session.js';
-import {today,thaiDate,assignmentsOn,escapeHTML as e} from './core.js';
-import {icon} from './icons.js';
+import {boot,heading,empty} from './shell.js?v=20261025-firebase2';
+import {isDemo,url} from './session.js?v=20261025-firebase2';
+import {today,thaiDate,assignmentsOn,escapeHTML as e} from './core.js?v=20261025-firebase2';
+import {icon} from './icons.js?v=20261025-firebase2';
 boot('index',async({user,assignments})=>{
  const day=today(),morning=assignmentsOn(assignments,day,'morning'),lessons=assignmentsOn(assignments,day,'subject');
  document.querySelector('#pageContent').innerHTML=heading('ระบบดูแลนักเรียน','วันนี้ของคุณครู','เช็คชื่อ ติดตามการเข้าเรียน และดูแลนักเรียนในที่เดียว',`<div class="date-pill">${icon('calendar')} ${thaiDate(day)}</div>`)+`

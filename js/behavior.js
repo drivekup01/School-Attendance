@@ -1,7 +1,7 @@
-import {boot,heading,empty,notify} from './shell.js';
-import {today,thaiDate,escapeHTML as e} from './core.js';
-import {icon} from './icons.js';
-import {isDemo} from './session.js';
+import {boot,heading,empty,notify} from './shell.js?v=20261025-firebase2';
+import {today,thaiDate,escapeHTML as e} from './core.js?v=20261025-firebase2';
+import {icon} from './icons.js?v=20261025-firebase2';
+import {isDemo} from './session.js?v=20261025-firebase2';
 boot('behavior',async ctx=>{
  // Until school-wide policy is agreed, only the homeroom scope is exposed here.
  const classes=[...new Map(ctx.assignments.filter(a=>a.kind==='morning').map(a=>[a.classId,a])).values()];let students=[],events=[],version=0;

@@ -1,8 +1,8 @@
-import {boot,heading,empty,notify} from './shell.js';
-import {today,validateRange,escapeHTML as e} from './core.js';
-import {icon} from './icons.js';
-import {isDemo} from './session.js';
-import {reportRows,csvExport,xlsxExport} from './export.js';
+import {boot,heading,empty,notify} from './shell.js?v=20261025-firebase2';
+import {today,validateRange,escapeHTML as e} from './core.js?v=20261025-firebase2';
+import {icon} from './icons.js?v=20261025-firebase2';
+import {isDemo} from './session.js?v=20261025-firebase2';
+import {reportRows,csvExport,xlsxExport} from './export.js?v=20261025-firebase2';
 boot('reports',async ctx=>{
  const day=today(),classes=[...new Map(ctx.assignments.map(a=>[a.classId,a])).values()];let rows=[],records=[],loadedKind='',loadedName='';
  document.querySelector('#pageContent').innerHTML=heading('สรุปข้อมูลสำหรับงานของคุณครู','รายงาน / ส่งออก','เลือกข้อมูลในขอบเขตที่ได้รับสิทธิ์ เพื่อนำไปทำงานต่อ')+`<section class="panel"><div class="panel-heading"><h2>${icon('reports')} เลือกรายงาน</h2><span class="tag">Excel / CSV</span></div><form id="reportForm"><div class="filters"><label class="field"><span>ประเภทรายงาน</span><select id="reportKind"><option value="all">การเช็คชื่อทั้งหมด</option><option value="morning">เข้าแถวเช้า</option><option value="subject">รายวิชา / สอนแทน</option><option value="behavior">คะแนนความประพฤติ</option></select></label><label class="field"><span>ห้องเรียน</span><select id="reportClass"><option value="">ทุกห้องที่ได้รับสิทธิ์</option>${classes.map(a=>`<option value="${e(a.classId)}">${e(a.className)}</option>`).join('')}</select></label><label class="field"><span>ตั้งแต่วันที่</span><input id="from" type="date" value="${day}" required></label><label class="field"><span>ถึงวันที่</span><input id="to" type="date" value="${day}" required></label><button class="button" type="submit" ${!ctx.provider?'disabled':''}>แสดงรายงาน ${icon('arrow')}</button></div></form><p class="fine-print">แสดงเฉพาะข้อมูลที่บันทึกแล้ว เลือกได้ไม่เกิน 93 วันต่อครั้ง</p></section><section class="panel report-result"><div class="panel-heading"><div><h2>ข้อมูลสำหรับส่งออก</h2><small id="reportSummary">ยังไม่ได้เลือกรายงาน</small></div><div class="export-actions"><button class="button secondary" id="exportExcel" disabled>${icon('file')} Excel</button><button class="button ghost" id="exportCSV" disabled>${icon('file')} CSV</button></div></div><div id="reportPreview">${empty('ยังไม่มีข้อมูลรายงาน','เช็คชื่อหรือบันทึกคะแนนก่อน แล้วเลือกช่วงวันที่เพื่อดูรายงาน')}</div></section><div class="sgs-note">${icon('file')}<div><strong>เตรียมรองรับการทำงานต่อกับ SGS</strong><p>ขณะนี้เป็นไฟล์ข้อมูลทั่วไป ยังไม่ใช่รูปแบบนำเข้า SGS เมื่อมีไฟล์ต้นแบบจะปรับคอลัมน์และรหัสให้ตรงกัน</p></div></div>`;

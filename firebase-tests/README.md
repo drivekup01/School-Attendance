@@ -9,9 +9,9 @@ npm install
 npx -y firebase-tools@latest emulators:exec --only firestore --project demo-school-attendance --config firebase.json "node --test rules.test.mjs"
 ```
 
-17 กลุ่มทดสอบครอบคลุม profile/ACL/assignment scope, mark+audit atomicity, timetable/date,
+20 กลุ่มทดสอบครอบคลุม profile/ACL/assignment scope, mark+audit atomicity, timetable/date,
 validation on create/update, immutable history, append-only behavior และ legacy budget/procurement regression พร้อมทดสอบ real store adapter กับ emulator
-ชุดทดสอบนี้ไม่เขียนฐานจริง
+รวมบัญชีกลางและ public/private timetable boundary; ชุดทดสอบนี้ไม่เขียนฐานจริง
 
 Browser ใช้ Firebase SDK 12.4.0 ตามระบบเดิม; rules tests ใช้ SDK 13.1.0 + rules-unit-testing 6.0.0
 ควรทดสอบ browser adapter บน emulator และ production ห้องทดลองก่อนเปิดใช้งานวงกว้าง

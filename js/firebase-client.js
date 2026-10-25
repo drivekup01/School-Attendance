@@ -1,5 +1,5 @@
-import {firebaseConfig} from './firebase-config.js';
-import {settings} from './settings.js';
+import {firebaseConfig} from './firebase-config.js?v=20261025-firebase2';
+import {settings} from './settings.js?v=20261025-firebase2';
 let client;
 export async function firebase(){
  if(!client) client=(async()=>{
@@ -20,16 +20,16 @@ export async function currentUser(){return (await firebase()).auth.currentUser;}
 export const real={
  async profile(){
    if(!settings.databaseReady)throw Error('กำลังเตรียมสิทธิ์ชุดข้อมูลเช็คชื่อ ยังไม่เปิดบันทึกข้อมูลจริง');
-   const {auth,db,F}=await firebase();if(!auth.currentUser)return null;
-   const snap=await F.getDocFromServer(F.doc(db,'attendance_teachers',auth.currentUser.uid));
-   if(!snap.exists()||!snap.data().active)throw Error('บัญชีนี้ยังไม่ได้รับสิทธิ์ระบบเช็คชื่อ กรุณาติดต่อผู้ดูแล');
-   const p=snap.data();return {...p,role:p.role==='admin'?'admin':'teacher',uid:auth.currentUser.uid};
+   const {auth}=await firebase();if(!auth.currentUser)return null;
+   const p=await (await import('./school-auth.js?v=20261025-firebase2')).profile();
+   if(!p?.active||!['teacher','admin'].includes(p.attendanceRole))throw Error('บัญชีนี้ยังไม่ได้รับสิทธิ์ระบบเช็คชื่อ กรุณาติดต่อผู้ดูแลบัญชีกลาง');
+   return {...p,role:p.attendanceRole};
  },
- async assignments(){return (await import('./store.js')).store.assignments();},
- async students(classId){return (await import('./store.js')).store.students(classId);},
- async session(a,date){return (await import('./store.js')).store.session(a,date);},
- async save(a,date,students,marks,revision){return (await import('./store.js')).store.save(a,date,students,marks,revision);},
- async behavior(classId){return (await import('./store.js')).store.behavior(classId);},
- async addBehavior(item){return (await import('./store.js')).store.addBehavior(item);},
- async report(from,to,kind){return (await import('./store.js')).store.report(from,to,kind);}
+ async assignments(){return (await import('./store.js?v=20261025-firebase2')).store.assignments();},
+ async students(classId){return (await import('./store.js?v=20261025-firebase2')).store.students(classId);},
+ async session(a,date){return (await import('./store.js?v=20261025-firebase2')).store.session(a,date);},
+ async save(a,date,students,marks,revision){return (await import('./store.js?v=20261025-firebase2')).store.save(a,date,students,marks,revision);},
+ async behavior(classId){return (await import('./store.js?v=20261025-firebase2')).store.behavior(classId);},
+ async addBehavior(item){return (await import('./store.js?v=20261025-firebase2')).store.addBehavior(item);},
+ async report(from,to,kind){return (await import('./store.js?v=20261025-firebase2')).store.report(from,to,kind);}
 };

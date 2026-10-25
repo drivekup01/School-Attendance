@@ -1,10 +1,10 @@
-import {firebase} from './firebase-client.js';
-import {settings} from './settings.js';
-import {validDate,escapeHTML,today} from './core.js';
+import {firebase} from './firebase-client.js?v=20261025-firebase2';
+import {settings} from './settings.js?v=20261025-firebase2';
+import {validDate,escapeHTML,today} from './core.js?v=20261025-firebase2';
 const idOK=id=>/^[A-Za-z0-9_-]{1,100}$/.test(id);
 const text=(s,max)=>typeof s==='string'&&s.trim().length>0&&s.length<=max;
 const iso=ts=>ts?.toDate?today(ts.toDate()):'';
-async function admin(){if(!settings.databaseReady)throw Error('ยังไม่เปิดใช้ฐานข้อมูล');const c=await firebase(),uid=c.auth.currentUser?.uid;if(!uid)throw Error('กรุณาเข้าสู่ระบบ');const s=await c.F.getDocFromServer(c.F.doc(c.db,'attendance_teachers',uid));if(!s.exists()||!s.data().active||s.data().role!=='admin')throw Error('หน้านี้ใช้ได้เฉพาะผู้ดูแลระบบ');return {...c,uid};}
+async function admin(){if(!settings.databaseReady)throw Error('ยังไม่เปิดใช้ฐานข้อมูล');const c=await firebase(),uid=c.auth.currentUser?.uid;if(!uid)throw Error('กรุณาเข้าสู่ระบบ');const central=await c.F.getDocFromServer(c.F.doc(c.db,'school_users',uid));const s=central.exists()?central:await c.F.getDocFromServer(c.F.doc(c.db,'attendance_teachers',uid));if(!s.exists()||!s.data().active||(central.exists()?s.data().attendanceRole:s.data().role)!=='admin')throw Error('หน้านี้ใช้ได้เฉพาะผู้ดูแลระบบ');return {...c,uid};}
 export const adminStore={
  async list(){const c=await admin();const names=['attendance_classes','attendance_directory','attendance_assignments'];const docs=await Promise.all(names.map(n=>c.F.getDocsFromServer(c.F.collection(c.db,n))));return {classes:docs[0].docs.map(s=>({...s.data(),id:s.id})),teachers:docs[1].docs.map(s=>({...s.data(),id:s.id})),assignments:docs[2].docs.map(s=>{const d=s.data();return {...d,id:s.id,from:iso(d.from),to:iso(d.to),date:iso(d.date)};})};},
  async addClass(item){const c=await admin();if(!idOK(item.id)||!text(item.name,80)||!Number.isInteger(item.academicYear)||item.academicYear<2500||item.academicYear>2700||![1,2].includes(item.term))throw Error('ข้อมูลห้องไม่ถูกต้อง');const ref=c.F.doc(c.db,'attendance_classes',item.id);await c.F.runTransaction(c.db,async tx=>{if((await tx.get(ref)).exists())throw Error('รหัสห้องนี้มีแล้ว กรุณาใช้รหัสอื่น');tx.set(ref,{name:item.name.trim(),academicYear:item.academicYear,term:item.term,active:true,createdAt:c.F.serverTimestamp(),updatedAt:c.F.serverTimestamp(),updatedBy:c.uid});});},
