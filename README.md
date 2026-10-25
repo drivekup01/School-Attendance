@@ -7,10 +7,16 @@
 - หน้าแรก / เข้าแถวเช้า / รายวิชาและสอนแทน / ความประพฤติ / รายงาน / ผู้ดูแล แยก HTML, JS และ CSS
 - โหมดทดลอง `?demo=1` ใช้รายชื่อสมมติ บันทึกเฉพาะ sessionStorage ของแท็บ ไม่ส่งข้อมูลทดลองเข้า Firebase
 - ส่งออก UTF-8 CSV และไฟล์ .xlsx จริง; ยังเป็นรูปแบบทั่วไปจนกว่าจะมีต้นแบบ SGS
-- เตรียม Google login และ real data adapter สำหรับฐาน `(default)` โปรเจกต์ `school-budget-3e69d`
+- ใช้ Google login และบัญชีกลาง school_users บนฐาน `(default)` โปรเจกต์ `school-budget-3e69d`
 - ชุดข้อมูลใหม่ทุกชุดขึ้นต้น `attendance_` ไม่อ่านหรือเขียน `budget_*` / `procurement_*`
-- **databaseReady เป็น true** แล้ว ต้องเผยแพร่ Rules v2 และ provision บัญชี/สิทธิ์ก่อนใช้จริง
-- ยังไม่มีข้อมูลนักเรียนจริง ยังไม่ได้ทดสอบ OAuth และบันทึกข้อมูลจริงบน production
+- เผยแพร่กฎสิทธิ์รวมและเปิดบัญชีกลางแล้ว บทบาทเช็คชื่อแยกจากวิชาการ/งบประมาณ
+- ทดสอบ Google session ร่วมกับ Portal/ตารางสอนแล้ว; ยังรอข้อมูลนักเรียนและการมอบหมายเพื่อทดสอบบันทึกเช็คชื่อนักเรียนจริง
+
+## เว็บใช้งาน
+
+https://drivekup01.github.io/School-Portal/attendance/
+
+School-Attendance เป็น repo ต้นฉบับ แยกไฟล์รายหน้าเหมือนเดิม ส่วน School-Portal เผยแพร่เฉพาะ static UI จาก repo นี้อัตโนมัติ ไม่คัดลอกฐานข้อมูลหรือไฟล์ Functions
 
 ## เปิดในเครื่อง
 
@@ -82,3 +88,4 @@ Firebase browser SDK 12.4.0 ใช้ Google CDN · ExcelJS 4.4.0 (MIT) โห�
 ไม่ใส่ service account keys หรือข้อมูลนักเรียนจริงใน repo
 
 รายละเอียดส่วนผู้ดูแล: docs/ADMIN.md
+
