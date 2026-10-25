@@ -1,5 +1,5 @@
 import {displayDayFirst} from './date-input.js?v=20261025-date1';
-import {heading,empty,notify} from './shell.js?v=20261025-overview1';
+import {heading,empty,notify} from './shell.js?v=20261025-navigation1';
 import {today,thaiDate,assignmentsOn,counts,statuses,escapeHTML as e,validateMarks,validDate} from './core.js?v=20261025-firebase2';
 import {icon} from './icons.js?v=20261025-firebase2';
 import {isDemo} from './session.js?v=20261025-firebase2';
