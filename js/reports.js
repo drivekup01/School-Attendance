@@ -1,4 +1,4 @@
-import {boot,heading,empty,notify} from './shell.js?v=20261025-sidebar1';
+import {boot,heading,empty,notify} from './shell.js?v=20261025-overview1';
 import {today,validateRange,escapeHTML as e} from './core.js?v=20261025-firebase2';
 import {icon} from './icons.js?v=20261025-firebase2';
 import {isDemo} from './session.js?v=20261025-firebase2';
