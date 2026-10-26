@@ -1,11 +1,10 @@
 import {escapeHTML as e,statuses,thaiDate,today,assignmentsOn} from './core.js?v=20261025-firebase2';
 const labels={all:'ทั้งหมด',...statuses,pending:'ยังไม่เช็ค'};
 const colors={present:'teal',late:'gold',absent:'purple',leave:'blue'};
-export async function renderOverview(host,{user,isDemo,provider,assignments}){
+export async function renderOverview(host,{isDemo,provider,assignments}){
  let summary,selected='all',roomId='',requestId=0;
  host.innerHTML=`<section class="panel morning-overview"><div class="panel-heading"><div><h2>สรุปเข้าแถวเช้าวันนี้</h2><small>${e(thaiDate(today()))} · ใช้ผลเช็คชื่อตอนเช้าเท่านั้น</small></div><button class="button ghost" data-overview-refresh>ค้นหา</button></div><div data-overview-body></div></section>`;
  const body=host.querySelector('[data-overview-body]');
- if(!user){body.innerHTML='<p class="fine-print">เข้าสู่ระบบเพื่อดูยอดรวม ห้องเรียน และรายชื่อนักเรียนวันนี้</p><button class="button secondary" data-overview-login>เข้าสู่ระบบด้วย Google</button>';body.querySelector('button').onclick=()=>document.querySelector('#authButton').click();host.querySelector('[data-overview-refresh]').hidden=true;return;}
  let demoDetails=new Map();
  async function call(input){
   if(!isDemo)return (await import('./school-auth.js?v=20261025-firebase2')).call('attendanceOverview',input);

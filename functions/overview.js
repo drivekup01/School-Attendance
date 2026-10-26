@@ -4,12 +4,6 @@ const fail=(code,message)=>{throw Object.assign(new Error(message),{code});};
 const dayAt=now=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
 const epoch=t=>t?.toMillis?.()??0;
 const zero=()=>({present:0,late:0,absent:0,leave:0,pending:0});
-function permitted(auth,central,legacy){
- if(!auth||auth.token?.email_verified!==true||auth.token.firebase?.sign_in_provider!=='google.com')fail('unauthenticated','กรุณาเข้าสู่ระบบด้วย Google');
- if(central){if(central.active!==true)fail('permission-denied','บัญชีนี้ถูกระงับ');return;}
- if(legacy){if(legacy.active!==true||legacy.email!==auth.token.email)fail('permission-denied','บัญชีนี้ไม่มีสิทธิ์');return;}
- if(!/^[^@]+@kbws\.ac\.th$/i.test(auth.token.email||''))fail('permission-denied','ใช้บัญชีโรงเรียนหรือบัญชีที่ผู้ดูแลอนุมัติ');
-}
 function currentClasses(classes,year){
  const selected=new Map();
  for(const c of classes){if(!c.active||c.academicYear>year)continue;const key=c.name,prior=selected.get(key);if(!prior||c.academicYear*10+c.term>prior.academicYear*10+prior.term)selected.set(key,c);}
@@ -31,9 +25,7 @@ function build({date,classes,assignments,rosters,marks}){
  return {date,totals,rooms,updatedAt:updated?new Date(updated).toISOString():null};
 }
 async function service(db,Timestamp,request,now=new Date()){
- const auth=request.auth;if(!auth)fail('unauthenticated','กรุณาเข้าสู่ระบบ');
- const [central,legacy]=await db.getAll(db.doc('school_users/'+auth.uid),db.doc('attendance_teachers/'+auth.uid));
- permitted(auth,central.exists?central.data():null,legacy.exists?legacy.data():null);
+ // Public, read-only overview limited to today in Bangkok. Writes still use Firestore rules.
  const input=request.data||{},method=input.method||'summary';
  if(!['summary','details'].includes(method)||Object.keys(input).some(k=>!['method','classId','status'].includes(k)))fail('invalid-argument','ไม่รองรับคำขอนี้');
  if(method==='details'&&(typeof input.classId!=='string'||!input.classId.match(/^[A-Za-z0-9_-]{1,100}$/)||!STATUSES.concat('pending','all').includes(input.status)))fail('invalid-argument','เลือกห้องและสถานะให้ถูกต้อง');
@@ -49,4 +41,4 @@ async function service(db,Timestamp,request,now=new Date()){
  const room=result.rooms.find(c=>c.id===input.classId);if(!room)fail('not-found','ไม่พบห้องเรียน');
  return {date,classId:room.id,className:room.name,status:input.status,students:room.students.filter(s=>input.status==='all'||s.status===input.status),updatedAt:result.updatedAt};
 }
-module.exports={permitted,currentClasses,build,dayAt,service};
+module.exports={currentClasses,build,dayAt,service};
