@@ -66,3 +66,30 @@ test('legacy approved requests can complete without losing the original approval
  assert.equal(docs.get(path).status,'awarded');assert.equal(docs.get(path).approvedName,'Original Manager');
  assert.equal(docs.get(path).approvalNote,'Original note');assert.equal([...docs.keys()].filter(k=>k.startsWith('attendance_behavior/')).length,2);
 });
+
+test('attendance admin can submit for readable rooms without per-room ACL but cannot approve',async()=>{
+ const {db,docs}=memory();docs.set('school_users/admin',{name:'Synthetic Admin',active:true,attendanceRole:'admin'});
+ const saved=await service(db,T,req('admin',{method:'submit',form:form()}),now);
+ assert.equal(saved.status,'pending');assert.equal(docs.get('attendance_behavior_requests/'+saved.id).teacherUid,'admin');
+ assert.equal([...docs.keys()].filter(p=>p.startsWith('attendance_behavior/')).length,0);
+ await assert.rejects(service(db,T,req('admin',{method:'approve',requestId:saved.id,note:''}),now),{code:'permission-denied'});
+});
+test('legacy attendance admin can submit without ACL; central role downgrade overrides legacy admin',async()=>{
+ const {db,docs}=memory();docs.set('attendance_teachers/legacy',{name:'Legacy Admin',email:'legacy@kbws.ac.th',active:true,role:'admin'});
+ assert.equal((await service(db,T,req('legacy',{method:'submit',form:form()}),now)).status,'pending');
+ docs.set('school_users/legacy',{name:'Central Teacher',active:true,attendanceRole:'teacher'});
+ await assert.rejects(service(db,T,req('legacy',{method:'submit',form:form({requestId:'downgraded'})}),now),{code:'permission-denied'});
+ docs.set('school_users/legacy',{active:false,attendanceRole:'admin'});
+ await assert.rejects(service(db,T,req('legacy',{method:'submit',form:form({requestId:'disabled'})}),now),{code:'permission-denied'});
+});
+test('ordinary teachers still cannot submit rooms without read ACL',async()=>{
+ const {db,docs}=memory();docs.delete('attendance_access/t1/classes/c1');
+ await assert.rejects(submit(db),{code:'permission-denied'});
+});
+
+test('admin role is rechecked inside submission transaction',async()=>{
+ const {db,docs}=memory();docs.set('school_users/admin',{name:'Admin',active:true,attendanceRole:'admin'});
+ const original=db.getAll;db.getAll=async(...refs)=>{const snapshots=await original(...refs);const copies=snapshots.map(s=>({...s,data:(()=>{const value=s.data();return ()=>value;})()}));docs.set('school_users/admin',{name:'Admin',active:true,attendanceRole:'teacher'});return copies;};
+ await assert.rejects(service(db,T,req('admin',{method:'submit',form:form()}),now),{code:'permission-denied'});
+ assert.equal([...docs.keys()].filter(p=>p.startsWith('attendance_behavior_requests/')).length,0);
+});

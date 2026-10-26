@@ -71,11 +71,12 @@ async function service(db,T,request,now=new Date()){
   if(p.exists&&p.data().active!==true)fail('permission-denied','บัญชีนี้ถูกระงับ');
   const manager=m.exists&&m.data().active===true&&m.data().email===a.email;
   const teacher=p.exists?p.data().active===true&&['teacher','admin'].includes(p.data().attendanceRole):l.exists&&l.data().active===true&&l.data().email?.toLowerCase()===a.email;
+  const admin=teacher&&(p.exists?p.data().attendanceRole==='admin':l.data().role==='admin');
   if(!manager&&!teacher)fail('permission-denied','สิทธิ์บัญชีมีการเปลี่ยนแปลง');
   const rooms=await Promise.all(classIds.map(async classId=>{
    const [c,acl]=await Promise.all([tx.get(db.doc('attendance_classes/'+classId)),tx.get(db.doc('attendance_access/'+a.uid+'/classes/'+classId))]);
    if(!c.exists||c.data().active!==true)fail('invalid-argument','พบห้องเรียนที่ไม่พร้อมใช้งาน');
-   if(!manager&&(!acl.exists||acl.data().active!==true||acl.data().canRead!==true))fail('permission-denied','ไม่มีสิทธิ์ยื่นรายชื่อของห้องนี้');
+   if(!manager&&!admin&&(!acl.exists||acl.data().active!==true||acl.data().canRead!==true))fail('permission-denied','ไม่มีสิทธิ์ยื่นรายชื่อของห้องนี้');
    return {id:classId,name:c.data().name};
   }));
   const roster=await Promise.all(form.students.map(s=>tx.get(db.doc('attendance_classes/'+s.classId+'/students/'+s.studentId))));
