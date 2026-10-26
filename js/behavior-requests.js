@@ -11,6 +11,7 @@ export async function mountRequests({host,setup,isDemo,behaviorCall,refreshScore
  const demoKey='school-behavior-requests-demo-v1';
  async function api(input){
   if(!isDemo)return (await import('./school-auth.js?v=20261025-firebase2')).call('attendanceBehaviorRequests',input);
+  if(input.method==='printOptions')return {names:['ครูตัวอย่าง','นางสาวอรลักษณ์ ธูปบูชากรณ์','นายเรวัฒน์ พรหมสะโร']};
   const saved=JSON.parse(sessionStorage.getItem(demoKey)||'[]');
   if(input.method==='list')return {requests:saved.map(d=>({...d,count:d.students.length}))};
   if(input.method==='submit'){const id=input.form.requestId,prior=saved.find(d=>d.id===id);if(!prior){saved.unshift({...input.form,id,teacherName:'ครูตัวอย่าง',students:rows.map(r=>({...r})),photos:input.form.photos.map((p,i)=>({...p,id:'p'+i})),status:'pending'});sessionStorage.setItem(demoKey,JSON.stringify(saved));}return {id,status:'pending'};}
@@ -58,7 +59,7 @@ export async function mountRequests({host,setup,isDemo,behaviorCall,refreshScore
   const dialog=document.createElement('dialog');dialog.className='behavior-confirm';dialog.innerHTML='<h2>ยืนยันดำเนินการคำร้อง</h2><p></p><div class="behavior-modes"><button class="button" data-yes>ยืนยัน</button><button class="button secondary" data-no>ยกเลิก</button></div>';dialog.querySelector('p').textContent=message;document.body.append(dialog);dialog.showModal();const yes=await new Promise(resolve=>{dialog.querySelector('[data-yes]').onclick=()=>resolve(true);dialog.querySelector('[data-no]').onclick=()=>resolve(false);dialog.oncancel=ev=>{ev.preventDefault();resolve(false);};});dialog.close();dialog.remove();if(!yes)return;
   const button=panel.querySelector(method==='approve'?'#requestApprove':'#requestAward');button.disabled=true;try{const input={method,requestId:id};if(method==='approve')input.note=panel.querySelector('#requestApprovalNote').value;await api(input);await refreshScores();notify('อนุมัติแล้ว ระบบเพิ่มคะแนนตามคำร้องเรียบร้อยแล้ว');await Promise.all([loadList(),showDetail(id)]);}catch(error){notify(error.message,true);button.disabled=false;}
  }
- async function printRequest(){const button=panel.querySelector('#requestPrint');button.disabled=true;try{await (await import('./behavior-print.js?v=20261026-original1')).printBehaviorRequest(detail,detailPhotos);}catch(error){notify(error.message,true);}finally{button.disabled=false;}}
+ async function printRequest(){const button=panel.querySelector('#requestPrint');button.disabled=true;try{let names=[];try{names=(await api({method:'printOptions'})).names;}catch{notify('โหลดรายชื่อไม่สำเร็จ สามารถเลือกชื่อเดิมหรือระบุชื่ออื่นได้',true);}const signers=await (await import('./behavior-print-signers.js?v=20261026-signers1')).choosePrintSigners(names);if(signers)await (await import('./behavior-print.js?v=20261026-signers1')).printBehaviorRequest(detail,detailPhotos,signers);}catch(error){notify(error.message,true);}finally{button.disabled=false;}}
 
  if(new URLSearchParams(location.search).get('tab')==='request')await switchTab('request');
 }

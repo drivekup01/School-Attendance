@@ -57,6 +57,6 @@ async function start(){
   finally{busy=false;host.querySelectorAll('#behaviorClass,#behaviorRefresh,[name=mode],#selectAll,[data-student]').forEach(x=>x.disabled=false);host.querySelector('#behaviorClass').disabled=!classes.length;host.querySelector('#behaviorStudent').disabled=!students.length;draw();}
  };
  await load();
- await (await import('./behavior-requests.js?v=20261026-originalprint1')).mountRequests({host,setup,isDemo,behaviorCall:call,refreshScores:load});
+ await (await import('./behavior-requests.js?v=20261026-signers1')).mountRequests({host,setup,isDemo,behaviorCall:call,refreshScores:load});
 }
 start().catch(error=>{host.innerHTML=heading('','คะแนนความประพฤติ','เข้าสู่ระบบตามสิทธิ์ที่โรงเรียนมอบหมาย')+empty('ยังเปิดใช้งานไม่ได้',friendlyError(error),'<button class="button" onclick="location.reload()">ลองใหม่</button> <button class="button secondary" id="behaviorLogin">เข้าสู่ระบบ / เปลี่ยนบัญชี</button>');host.querySelector('#behaviorLogin').onclick=()=>document.querySelector('#authButton').click();});

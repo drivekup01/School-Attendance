@@ -6,7 +6,7 @@ function dateParts(value){
  return `${day} เดือน ${months[month-1]} พ.ศ. ${year+543}`;
 }
 
-export function requestPrintHTML(d,photos=[],baseURL=new URL('../',import.meta.url).href){
+export function requestPrintHTML(d,photos=[],baseURL=new URL('../',import.meta.url).href,signers={}){
  const asset=name=>e(new URL('assets/'+name,baseURL).href);
  const checked=type=>`<span class="checkbox ${d.evidenceTypes.includes(type)?'checked':''}" aria-label="${d.evidenceTypes.includes(type)?'เลือก':'ไม่เลือก'}"></span>`;
  const activityDates=d.startDate===d.endDate?dateParts(d.startDate):`${dateParts(d.startDate)} ถึงวันที่ ${dateParts(d.endDate)}`;
@@ -32,16 +32,16 @@ export function requestPrintHTML(d,photos=[],baseURL=new URL('../',import.meta.u
  <p class="evidence-intro">โดยข้าพเจ้าได้แนบเอกสาร/หลักฐาน เพื่อเป็นข้อมูลประกอบการพิจารณา ดังนี้</p>
  <div class="evidence"><p>${checked('certificate')} สำเนาเกียรติบัตร</p><p>${checked('participation')} ใบรับรองการเข้าร่วมกิจกรรม</p><p>${checked('photo')} ภาพถ่ายการทำกิจกรรม</p><p>${checked('other')} <span>อื่น ๆ (ระบุ)<span class="filled">${e(d.otherEvidence||'　　　　　　　　　　')}</span></span></p></div>
  <p class="closing indent">จึงเรียนมาเพื่อพิจารณา</p><div class="requester"><p>ชื่อ<span class="signature"></span></p><p>( <span class="filled">${e(d.teacherName)}</span> )</p><p>ครูผู้ดูแลกิจกรรม</p></div>
- <div class="opinions"><div><h2>ความเห็นของหัวหน้างานระบบดูแลช่วยเหลือนักเรียน</h2><p>ได้ตรวจสอบหลักฐานตามที่แจ้งมาถูกต้องเรียบร้อย</p><p class="choice"><span class="checkbox"></span> เห็นสมควรอนุญาตเพิ่มคะแนน</p><p class="choice"><span class="checkbox"></span> ไม่เห็นสมควรอนุญาต</p><p class="why">เพราะ<span class="signature" style="width:42mm"></span></p><div class="official-sign"><p>ลงชื่อ<span class="signature"></span></p><p>(นางสาวอรลักษณ์ ธูปบูชากรณ์)</p><p>หัวหน้างานระบบการดูแลช่วยเหลือนักเรียน</p><p><span class="date-line"> / / </span></p></div></div>
- <div><h2>ความเห็นของผู้อำนวยการโรงเรียน</h2><p class="choice"><span class="checkbox"></span> อนุญาตเพิ่มคะแนน</p><p class="choice"><span class="checkbox"></span> ไม่อนุญาตเพิ่มคะแนน</p><div class="official-sign" style="margin-top:11mm"><p>ลงชื่อ<span class="signature"></span></p><p>(นายเรวัฒน์ พรหมสะโร)</p><p>ผู้อำนวยการโรงเรียนค่ายบางระจันวิทยาคม</p><p><span class="date-line"> / / </span></p></div></div></div></section>
+ <div class="opinions"><div><h2>ความเห็นของหัวหน้างานระบบดูแลช่วยเหลือนักเรียน</h2><p>ได้ตรวจสอบหลักฐานตามที่แจ้งมาถูกต้องเรียบร้อย</p><p class="choice"><span class="checkbox"></span> เห็นสมควรอนุญาตเพิ่มคะแนน</p><p class="choice"><span class="checkbox"></span> ไม่เห็นสมควรอนุญาต</p><p class="why">เพราะ<span class="signature" style="width:42mm"></span></p><div class="official-sign"><p>ลงชื่อ<span class="signature"></span></p><p>(${e(signers.headName??'นางสาวอรลักษณ์ ธูปบูชากรณ์')||'........................................................'})</p><p>หัวหน้างานระบบการดูแลช่วยเหลือนักเรียน</p><p><span class="date-line"> / / </span></p></div></div>
+ <div><h2>ความเห็นของผู้อำนวยการโรงเรียน</h2><p class="choice"><span class="checkbox"></span> อนุญาตเพิ่มคะแนน</p><p class="choice"><span class="checkbox"></span> ไม่อนุญาตเพิ่มคะแนน</p><div class="official-sign" style="margin-top:11mm"><p>ลงชื่อ<span class="signature"></span></p><p>(${e(signers.directorName??'นายเรวัฒน์ พรหมสะโร')||'........................................................'})</p><p>ผู้อำนวยการโรงเรียนค่ายบางระจันวิทยาคม</p><p><span class="date-line"> / / </span></p></div></div></div></section>
  <section class="roster"><table><colgroup><col style="width:9.4%"><col style="width:57.3%"><col style="width:33.3%"></colgroup><thead><tr><th>ที่</th><th>ชื่อ - สกุล</th><th>ชั้น</th></tr></thead><tbody>${d.students.map((s,i)=>`<tr><td>${i+1}</td><td>${e(s.name)}</td><td>${e(s.className)}</td></tr>`).join('')}</tbody></table></section>
  ${photos.length?'<section class="photos"><h2>ภาพถ่ายการทำกิจกรรม / หลักฐานประกอบ</h2>'+photos.map(p=>`<figure><img src="data:${e(p.mime)};base64,${e(p.base64)}" alt="${e(p.name)}"><figcaption>${e(p.name)}</figcaption></figure>`).join('')+'</section>':''}</body></html>`;
 }
 
-export async function printBehaviorRequest(detail,photos=[]){
+export async function printBehaviorRequest(detail,photos=[],signers={}){
  const frame=document.createElement('iframe');frame.className='request-print-frame';frame.setAttribute('title','แบบคำร้องตามแบบฟอร์มโรงเรียน');document.body.append(frame);
  try{
-  const doc=frame.contentDocument;doc.open();doc.write(requestPrintHTML(detail,photos));doc.close();
+  const doc=frame.contentDocument;doc.open();doc.write(requestPrintHTML(detail,photos,undefined,signers));doc.close();
   await Promise.all([...doc.images].map(img=>img.decode()));
   await doc.fonts.load('14pt RequestSarabun');await doc.fonts.ready;
   frame.contentWindow.onafterprint=()=>frame.remove();frame.contentWindow.focus();frame.contentWindow.print();

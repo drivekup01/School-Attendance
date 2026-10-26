@@ -26,9 +26,15 @@ function publicRecord(s){const d=s.data();return {id:s.id,...d,createdAt:d.creat
 function authorized(a,d){return a.manager||d.teacherUid===a.uid;}
 async function service(db,T,request,now=new Date()){
  const a=await actor(db,request),input=request.data||{};
- const accepted={list:['method'],detail:['method','requestId'],photo:['method','requestId','photoId'],submit:['method','form'],approve:['method','requestId','note'],award:['method','requestId']};
+ const accepted={list:['method'],printOptions:['method'],detail:['method','requestId'],photo:['method','requestId','photoId'],submit:['method','form'],approve:['method','requestId','note'],award:['method','requestId']};
  if(!Object.hasOwn(accepted,input.method)||Object.keys(input).some(k=>!accepted[input.method].includes(k)))fail('invalid-argument','ไม่รองรับคำขอนี้');
  const collection=db.collection('attendance_behavior_requests');
+ if(input.method==='printOptions'){
+  const [central,legacy]=await Promise.all([db.collection('school_users').get(),db.collection('attendance_teachers').get()]);
+  const profiles=new Map(central.docs.map(s=>[s.id,s.data()]));
+  const names=[...profiles.values(),...legacy.docs.filter(s=>!profiles.has(s.id)).map(s=>s.data())].filter(p=>p.active===true&&typeof p.name==='string'&&p.name.trim()).map(p=>p.name.trim());
+  return {names:[...new Set(names)].sort((x,y)=>x.localeCompare(y,'th'))};
+ }
  if(input.method==='list'){
   const q=a.manager?collection:collection.where('teacherUid','==',a.uid);
   const result=await (a.manager?q.orderBy('createdAt','desc').limit(40):q).get();

@@ -93,3 +93,9 @@ test('admin role is rechecked inside submission transaction',async()=>{
  await assert.rejects(service(db,T,req('admin',{method:'submit',form:form()}),now),{code:'permission-denied'});
  assert.equal([...docs.keys()].filter(p=>p.startsWith('attendance_behavior_requests/')).length,0);
 });
+
+test('print options expose only active names and central suspension overrides legacy',async()=>{
+ const {db,docs}=memory();docs.set('school_users/disabled',{active:false,name:'Hidden',email:'hidden@example.com'});docs.set('attendance_teachers/disabled',{active:true,name:'Old hidden'});docs.set('attendance_teachers/legacy',{active:true,name:'Legacy Name',email:'private@example.com'});
+ const options=await service(db,T,req('t1',{method:'printOptions'}),now);assert.ok(options.names.includes('Legacy Name'));assert.ok(!options.names.includes('Hidden'));assert.ok(!options.names.includes('Old hidden'));assert.deepEqual(Object.keys(options),['names']);assert.ok(!JSON.stringify(options).includes('@'));
+ await assert.rejects(service(db,T,{data:{method:'printOptions'}},now),{code:'unauthenticated'});
+});
