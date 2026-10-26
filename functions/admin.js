@@ -24,7 +24,7 @@ async function service(db,T,request,now=new Date()){
  if(!Object.hasOwn(allowed,input.method)||Object.keys(input).some(k=>!allowed[input.method].includes(k)))fail('invalid-argument','ข้อมูลคำขอไม่ถูกต้อง');
  if(input.method==='list'){
   const [p,l,rooms,jobs,native]=await Promise.all([db.collection('school_users').get(),db.collection('attendance_teachers').get(),db.collection('attendance_classes').get(),db.collection('attendance_assignments').get(),timetable(db)]);
-  const central=new Map(p.docs.map(s=>[s.id,s.data()])),profiles=[...central].map(([uid,d])=>({id:uid,...d}));for(const s of l.docs)if(!central.has(s.id))profiles.push({id:s.id,...s.data(),attendanceRole:s.data().role});
+  const central=new Map(p.docs.map(s=>[s.id,s.data()])),profiles=[...central].map(([uid,d])=>({id:uid,...d}));for(const s of l.docs)if(!central.has(s.id))profiles.push({id:s.id,...s.data(),attendanceRole:s.data().role||'teacher'});
   const teachers=profiles.filter(p=>p.active===true&&['teacher','admin'].includes(p.attendanceRole)).map(p=>({id:p.id,name:p.name||'ไม่ระบุชื่อ',teacherId:p.teacherId||'',active:true}));
   const classes=await Promise.all(rooms.docs.map(async s=>({id:s.id,...s.data(),studentCount:(await s.ref.collection('students').get()).docs.filter(x=>x.data().active!==false).length})));
   const assignments=jobs.docs.map(s=>({id:s.id,...s.data(),from:iso(s.data().from),to:iso(s.data().to),date:iso(s.data().date)}));
