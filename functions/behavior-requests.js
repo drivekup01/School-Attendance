@@ -50,19 +50,16 @@ async function service(db,T,request,now=new Date()){
    const [snap,grant,profile]=await Promise.all([tx.get(ref),tx.get(db.doc('attendance_behavior_managers/'+managerId(a.email))),tx.get(db.doc('school_users/'+a.uid))]);
    if(!grant.exists||grant.data().active!==true||grant.data().email!==a.email||profile.exists&&profile.data().active!==true)fail('permission-denied','สิทธิ์ผู้อนุมัติมีการเปลี่ยนแปลง');
    if(!snap.exists)fail('not-found','ไม่พบคำร้อง');const d=snap.data(),stamp=T.fromDate(now);
-   if(input.method==='approve'){
-    if(['approved','awarded'].includes(d.status))return {id:ref.id,status:d.status,replayed:true};
-    if(d.status!=='pending')fail('failed-precondition','คำร้องนี้ไม่อยู่ในสถานะรออนุมัติ');
-    tx.update(ref,{status:'approved',approvedBy:a.uid,approvedName:a.name,approvedAt:stamp,approvalNote:input.note.trim()});return {id:ref.id,status:'approved'};
-   }
    if(d.status==='awarded')return {id:ref.id,status:'awarded',count:d.students.length,replayed:true};
-   if(d.status!=='approved')fail('failed-precondition','ต้องอนุมัติเอกสารก่อนเพิ่มคะแนน');
+   if(input.method==='approve'?!['pending','approved'].includes(d.status):d.status!=='approved')fail('failed-precondition','ต้องอนุมัติเอกสารก่อนเพิ่มคะแนน');
    const classIds=[...new Set(d.students.map(s=>s.classId))];
    const [rooms,roster]=await Promise.all([Promise.all(classIds.map(c=>tx.get(db.doc('attendance_classes/'+c)))),Promise.all(d.students.map(s=>tx.get(db.doc('attendance_classes/'+s.classId+'/students/'+s.studentId))))]);
    if(rooms.some(c=>!c.exists||c.data().active!==true)||roster.some(s=>!s.exists||s.data().active===false))fail('failed-precondition','มีห้องหรือนักเรียนที่ไม่พร้อมใช้งาน กรุณาตรวจสอบก่อนเพิ่มคะแนน');
    const day=T.fromDate(new Date(d.endDate+'T00:00:00+07:00'));
    d.students.forEach((s,i)=>tx.create(db.doc('attendance_behavior/request_'+ref.id+'_'+i),{teacherUid:a.uid,classId:s.classId,studentId:s.studentId,day,delta:d.points,reason:('ตามคำร้อง '+ref.id+' · '+d.activity).slice(0,300),createdAt:stamp,authorName:a.name,groupId:'request_'+ref.id,sourceRequestId:ref.id}));
-   tx.update(ref,{status:'awarded',awardedBy:a.uid,awardedName:a.name,awardedAt:stamp});return {id:ref.id,status:'awarded',count:d.students.length};
+   const approval=d.status==='pending'?{approvedBy:a.uid,approvedName:a.name,approvedAt:stamp,approvalNote:input.note.trim()}:{};
+   // Approval and every ledger entry commit together; retries cannot award twice.
+   tx.update(ref,{...approval,status:'awarded',awardedBy:a.uid,awardedName:a.name,awardedAt:stamp});return {id:ref.id,status:'awarded',count:d.students.length};
   });
  }
  const form=input.form;validate(form,now);

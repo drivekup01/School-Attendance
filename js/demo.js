@@ -27,8 +27,16 @@ export const demo={
  async behavior(classId){return structuredClone(state.behavior.filter(x=>x.classId===classId));},
  async addBehavior(item){
    if(!Number.isInteger(item.delta)||item.delta===0||Math.abs(item.delta)>100)throw Error('ระบุคะแนนจำนวนเต็ม 1–100 คะแนน');
+   if(item.delta>0)throw Error('การเพิ่มคะแนนต้องใช้แบบคำร้อง');
+   if(!['dress','late','equipment','truancy','classroom','cleanliness','violence','substances','theft','leaving','other'].includes(item.category))throw Error('กรุณาเลือกประเภทการตัดคะแนน');
    if(!item.reason?.trim()||item.reason.length>300)throw Error('ระบุเหตุผลไม่เกิน 300 ตัวอักษร');
    const saved={...item,id:crypto.randomUUID(),teacherUid:demoUser.uid,createdAt:new Date().toISOString()};state.behavior.unshift(saved);persist();return saved;
+ },
+ async awardRequest(request){
+   if(!['pending','approved'].includes(request.status))throw Error('คำร้องไม่พร้อมอนุมัติ');
+   const entries=request.students.map((student,index)=>({id:'request_'+request.id+'_'+index,classId:student.classId,studentId:student.studentId,delta:request.points,reason:'คำร้องทดลอง: '+request.activity,date:request.endDate,teacherUid:demoUser.uid,createdAt:new Date().toISOString()}));
+   const next={...state,behavior:[...entries.filter(item=>!state.behavior.some(old=>old.id===item.id)),...state.behavior]};
+   sessionStorage.setItem(key,JSON.stringify(next));state=next;
  },
  async report(from,to,kind){validateRange(from,to);return structuredClone(kind==='behavior'?state.behavior.filter(x=>x.date>=from&&x.date<=to):Object.values(state.sessions).filter(x=>x.date>=from&&x.date<=to&&(kind==='all'||x.kind===kind||(kind==='subject'&&x.kind==='substitute'))));},
  reset(){state={sessions:{},behavior:[],history:[]};sessionStorage.removeItem(key);}

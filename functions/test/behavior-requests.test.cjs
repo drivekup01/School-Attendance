@@ -17,11 +17,11 @@ test('teacher cannot approve or award; manager cannot award before approval',asy
  for(const method of ['approve','award'])await assert.rejects(service(db,T,req('t1',{method,requestId:saved.id,note:''}),now),e=>['permission-denied','invalid-argument'].includes(e.code));
  await assert.rejects(service(db,T,req('manager',{method:'award',requestId:saved.id}),now),{code:'failed-precondition'});
 });
-test('approval and score award are separate, group-atomic and cannot be duplicated',async()=>{
+test('approval automatically awards every student atomically and cannot be duplicated',async()=>{
  const {db,docs}=memory(),saved=await submit(db);
  await service(db,T,req('manager',{method:'approve',requestId:saved.id,note:'Reviewed synthetic evidence'}),now);
- assert.equal([...docs.keys()].filter(k=>k.startsWith('attendance_behavior/')).length,0);
- const approved=await service(db,T,req('manager',{method:'detail',requestId:saved.id}),now);assert.equal(approved.status,'approved');assert.equal(approved.approvedName,'Manager');assert.equal(approved.approvedAt,now.toISOString());
+ assert.equal([...docs.keys()].filter(k=>k.startsWith('attendance_behavior/')).length,2);
+ const approved=await service(db,T,req('manager',{method:'detail',requestId:saved.id}),now);assert.equal(approved.status,'awarded');assert.equal(approved.approvedName,'Manager');assert.equal(approved.approvedAt,now.toISOString());
  await service(db,T,req('manager',{method:'award',requestId:saved.id}),now);
  const replay=await service(db,T,req('manager',{method:'award',requestId:saved.id}),now);assert.equal(replay.replayed,true);
  assert.equal([...docs.keys()].filter(k=>k.startsWith('attendance_behavior/')).length,2);
@@ -38,10 +38,14 @@ test('manager lists all requests, ordinary teachers only their own',async()=>{
 test('invalid roster, unauthorized classes and forged workflow fields are rejected before writing',async()=>{
  const {db}=memory();for(const patch of [{students:[{classId:'c1',studentId:'missing'}]},{students:[{classId:'c2',studentId:'s1'}]},{status:'approved'},{teacherUid:'manager'},{students:[{classId:'c1',studentId:'s1',name:'Spoof'}]}])await assert.rejects(submit(db,patch),e=>['permission-denied','invalid-argument'].includes(e.code));
 });
-test('disabled students prevent partial awards and revoked manager cannot approve',async()=>{
- const {db,docs}=memory(),saved=await submit(db);await service(db,T,req('manager',{method:'approve',requestId:saved.id,note:''}),now);docs.set('attendance_classes/c1/students/s2',{active:false});await assert.rejects(service(db,T,req('manager',{method:'award',requestId:saved.id}),now),{code:'failed-precondition'});assert.equal([...docs.keys()].filter(k=>k.startsWith('attendance_behavior/')).length,0);assert.equal(docs.get('attendance_behavior_requests/'+saved.id).status,'approved');
+test('failed approval leaves all scores and pending status unchanged; revoked manager is denied',async()=>{
+ const {db,docs}=memory(),saved=await submit(db);docs.set('attendance_classes/c1/students/s2',{active:false});
+ await assert.rejects(service(db,T,req('manager',{method:'approve',requestId:saved.id,note:''}),now),{code:'failed-precondition'});
+ assert.equal([...docs.keys()].filter(k=>k.startsWith('attendance_behavior/')).length,0);
+ assert.equal(docs.get('attendance_behavior_requests/'+saved.id).status,'pending');
  docs.set('school_users/manager',{active:false});await assert.rejects(service(db,T,req('manager',{method:'approve',requestId:saved.id,note:''}),now),{code:'permission-denied'});
 });
+
 test('photo/date validation, quotas and request schemas reject malformed input',()=>{
  for(const patch of [{endDate:'2026-10-27'},{startDate:'2026-02-30'},{requestDate:'2026-10-27'},{points:0},{photos:[{...photo,base64:'PHN2Zz48L3N2Zz4='}]},{photos:Array(5).fill(photo)},{photos:[]},{evidenceTypes:['other']},{activity:''}])assert.throws(()=>validate(form(patch),now),{code:'invalid-argument'});
 });
@@ -53,4 +57,12 @@ test('manager can request and award students from different authorized rooms tog
  const result=await service(db,T,req('manager',{method:'submit',form:form({students:[{classId:'c1',studentId:'s1'},{classId:'c2',studentId:'s3'}]})}),now);
  await service(db,T,req('manager',{method:'approve',requestId:result.id,note:''}),now);await service(db,T,req('manager',{method:'award',requestId:result.id}),now);
  const events=[...docs.entries()].filter(([p])=>p.startsWith('attendance_behavior/')).map(([,d])=>d);assert.deepEqual(events.map(x=>x.classId).sort(),['c1','c2']);assert.ok(events.every(x=>x.delta===5&&x.sourceRequestId===result.id));
+});
+
+test('legacy approved requests can complete without losing the original approval',async()=>{
+ const {db,docs}=memory(),saved=await submit(db),path='attendance_behavior_requests/'+saved.id;
+ docs.set(path,{...docs.get(path),status:'approved',approvedBy:'old-manager',approvedName:'Original Manager',approvedAt:T.fromDate(now),approvalNote:'Original note'});
+ await service(db,T,req('manager',{method:'approve',requestId:saved.id,note:'Retry'}),now);
+ assert.equal(docs.get(path).status,'awarded');assert.equal(docs.get(path).approvedName,'Original Manager');
+ assert.equal(docs.get(path).approvalNote,'Original note');assert.equal([...docs.keys()].filter(k=>k.startsWith('attendance_behavior/')).length,2);
 });

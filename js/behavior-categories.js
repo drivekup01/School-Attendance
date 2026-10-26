@@ -1,0 +1,7 @@
+export const behaviorCategories={dress:'การแต่งกาย',late:'การมาสาย',equipment:'อุปกรณ์การเรียน',truancy:'การโดดเรียน',classroom:'พฤติกรรมในห้องเรียน',cleanliness:'การรักษาความสะอาด',violence:'พฤติกรรมรุนแรง',substances:'สารเสพติดและการพนัน',theft:'การลักทรัพย์',leaving:'การหนีออกนอกโรงเรียน',other:'อื่น ๆ',unspecified:'ไม่ระบุประเภท'};
+export const categoryDescriptions={dress:'ทรงผม การผูกโบว์ หรือเครื่องแบบไม่ถูกต้องตามกฎของโรงเรียน',late:'มาไม่ทันเข้าแถวเคารพธงชาติโดยไม่มีเหตุผลจำเป็น',equipment:'ไม่นำบัตรนักเรียนมา หรือไม่พกอุปกรณ์ที่จำเป็น',truancy:'หนีเข้าแถว หรือไม่เข้าเรียนในรายวิชาต่าง ๆ โดยเจตนา',classroom:'ก่อความรำคาญ รบกวนเพื่อน หรือแสดงกิริยาก้าวร้าวต่อครูผู้สอน',cleanliness:'ทิ้งขยะไม่เป็นที่ หรือทำลายความสะอาดของโรงเรียน',violence:'ทะเลาะวิวาท ชกต่อย หรือกลั่นแกล้ง (Bullying) อย่างรุนแรง',substances:'สารเสพติด บุหรี่ บุหรี่ไฟฟ้า แอลกอฮอล์ หรือการพนันในสถานศึกษา',theft:'ขโมยทรัพย์สินของโรงเรียน เพื่อน หรือบุคลากร',leaving:'ปีนรั้วหรือแอบหนีออกนอกบริเวณโรงเรียนในเวลาทำการ',other:'ระบุพฤติกรรมเพิ่มเติมในช่องเหตุผล / รายละเอียด'};
+export function deductionSummary(events){
+ const totals=Object.fromEntries(Object.keys(behaviorCategories).map(key=>[key,{count:0,points:0}]));
+ for(const event of events){if(!Number.isFinite(event.delta)||event.delta>=0)continue;const key=Object.hasOwn(totals,event.category)?event.category:'unspecified';totals[key].count++;totals[key].points-=event.delta;}
+ return totals;
+}

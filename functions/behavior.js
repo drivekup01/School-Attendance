@@ -5,14 +5,17 @@ const fail=(code,message)=>{throw Object.assign(new Error(message),{code});};
 const id=s=>typeof s==='string'&&/^[A-Za-z0-9_-]{1,100}$/.test(s);
 const managerId=email=>createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
 const value=s=>s.exists?s.data():null;
+const categories=['dress','late','equipment','truancy','classroom','cleanliness','violence','substances','theft','leaving','other'];
 function validate(input,now){
  const method=input?.method;
- const allowed={classes:['method'],room:['method','classId'],add:['method','classId','studentIds','delta','reason','date','requestId']};
+ const allowed={classes:['method'],room:['method','classId'],add:['method','classId','studentIds','delta','reason','date','requestId','category']};
  if(!Object.hasOwn(allowed,method)||Object.keys(input).some(k=>!allowed[method].includes(k)))fail('invalid-argument','ไม่รองรับคำขอนี้');
  if(method!=='classes'&&!id(input.classId))fail('invalid-argument','เลือกห้องเรียนให้ถูกต้อง');
  if(method!=='add')return;
  if(!Array.isArray(input.studentIds)||!input.studentIds.length||input.studentIds.length>100||input.studentIds.some(s=>!id(s))||new Set(input.studentIds).size!==input.studentIds.length)fail('invalid-argument','เลือกนักเรียน 1–100 คน โดยไม่ซ้ำกัน');
  if(!Number.isInteger(input.delta)||input.delta===0||Math.abs(input.delta)>100)fail('invalid-argument','คะแนนต้องเป็นจำนวนเต็ม 1–100 คะแนน');
+ if(input.delta>0)fail('permission-denied','การเพิ่มคะแนนทุกครั้งต้องยื่นแบบคำร้องและได้รับอนุมัติก่อน');
+ if(!categories.includes(input.category))fail('invalid-argument','กรุณาเลือกประเภทการตัดคะแนน');
  if(typeof input.reason!=='string'||!input.reason.trim()||input.reason.length>300)fail('invalid-argument','ระบุเหตุผล 1–300 ตัวอักษร');
  if(typeof input.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(input.date)||!Number.isFinite(Date.parse(input.date+'T00:00:00Z'))||new Date(input.date+'T00:00:00Z').toISOString().slice(0,10)!==input.date||input.date>dayAt(now))fail('invalid-argument','วันที่ไม่ถูกต้องหรืออยู่ในอนาคต');
  if(!id(input.requestId))fail('invalid-argument','รหัสรายการไม่ถูกต้อง');
@@ -52,12 +55,12 @@ async function service(db,Timestamp,request,now=new Date()){
  const roomRef=db.doc('attendance_classes/'+input.classId),room=value(await roomRef.get());if(!room?.active)fail('not-found','ไม่พบห้องเรียนที่เปิดใช้งาน');
  if(input.method==='room'){
   const [roster,ledger]=await Promise.all([roomRef.collection('students').get(),db.collection('attendance_behavior').where('classId','==',input.classId).get()]);
-  const events=ledger.docs.map(d=>{const e=d.data();return {id:d.id,studentId:e.studentId,delta:e.delta,reason:e.reason,date:e.day?.toDate?dayAt(e.day.toDate()):'',createdAt:iso(e.createdAt),author:e.authorName||'ครูผู้บันทึก',groupId:e.groupId||null};}).sort((x,y)=>y.createdAt.localeCompare(x.createdAt));
+  const events=ledger.docs.map(d=>{const e=d.data();return {id:d.id,studentId:e.studentId,delta:e.delta,category:categories.includes(e.category)?e.category:'unspecified',reason:e.reason,date:e.day?.toDate?dayAt(e.day.toDate()):'',createdAt:iso(e.createdAt),author:e.authorName||'ครูผู้บันทึก',groupId:e.groupId||null};}).sort((x,y)=>y.createdAt.localeCompare(x.createdAt));
   return {baseScore:100,canWrite:rights.write,students:summarize(roster.docs.map(d=>({id:d.id,...d.data()})),events),events};
  }
  if(!rights.write||(!a.manager&&input.studentIds.length!==1))fail('permission-denied','ครูทั่วไปบันทึกได้ทีละคนตามสิทธิ์ห้อง ส่วนแบบกลุ่มใช้ได้เฉพาะผู้ดูแลความประพฤติ');
  const operation=db.doc('attendance_behavior_operations/'+a.uid+'_'+input.requestId);
- const payload={classId:input.classId,studentIds:[...input.studentIds].sort(),delta:input.delta,reason:input.reason.trim(),date:input.date};
+ const payload={classId:input.classId,studentIds:[...input.studentIds].sort(),delta:input.delta,reason:input.reason.trim(),date:input.date,category:input.category};
  const digest=createHash('sha256').update(JSON.stringify(payload)).digest('hex');
  return db.runTransaction(async tx=>{
   const prior=await tx.get(operation);
@@ -72,7 +75,7 @@ async function service(db,Timestamp,request,now=new Date()){
   const roster=await Promise.all(payload.studentIds.map(s=>tx.get(roomRef.collection('students').doc(s))));
   if(roster.some(s=>!s.exists||s.data().active===false))fail('invalid-argument','พบรายชื่อนักเรียนที่ไม่พร้อมใช้งาน');
   const stamp=Timestamp.fromDate(now),day=Timestamp.fromDate(new Date(payload.date+'T00:00:00+07:00'));
-  for(const s of roster){const event=db.collection('attendance_behavior').doc();tx.create(event,{teacherUid:a.uid,classId:payload.classId,studentId:s.id,day,delta:payload.delta,reason:payload.reason,createdAt:stamp,authorName:a.name,groupId:operation.id});}
+  for(const s of roster){const event=db.collection('attendance_behavior').doc();tx.create(event,{teacherUid:a.uid,classId:payload.classId,studentId:s.id,day,delta:payload.delta,category:payload.category,reason:payload.reason,createdAt:stamp,authorName:a.name,groupId:operation.id});}
   tx.create(operation,{digest,count:roster.length,teacherUid:a.uid,classId:payload.classId,createdAt:stamp});
   return {ok:true,count:roster.length};
  });

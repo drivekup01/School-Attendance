@@ -16,7 +16,7 @@ function memory(){
  const db={doc:ref,collection,getAll:async(...refs)=>refs.map(r=>snap(r.path)),runTransaction:async fn=>{const writes=[];const result=await fn({get:async r=>snap(r.path),create:(r,data)=>{if(docs.has(r.path))throw Error('exists');writes.push([r.path,data]);}});writes.forEach(([p,d])=>docs.set(p,d));return result;}};
  return {db,docs};
 }
-const add=(changes={})=>({method:'add',classId:'c1',studentIds:['s1'],delta:-5,reason:'Synthetic test',date:'2026-10-26',requestId:'op1',...changes});
+const add=(changes={})=>({method:'add',classId:'c1',studentIds:['s1'],delta:-5,category:'dress',reason:'Synthetic test',date:'2026-10-26',requestId:'op1',...changes});
 test('anonymous, unverified and unapproved accounts are denied',async()=>{
  const {db}=memory();for(const request of [{data:{method:'classes'}},req('unknown',{method:'classes'}),{...req('manager',{method:'classes'}),auth:{uid:'manager',token:{email:'manager@kbws.ac.th',email_verified:false}}}])await assert.rejects(service(db,T,request,now),e=>['unauthenticated','permission-denied'].includes(e.code));
 });
@@ -29,12 +29,12 @@ test('ordinary teachers are scoped and single-only; scores combine every author'
  const {db}=memory();assert.equal((await service(db,T,req('t1',{method:'classes'}),now)).canBulk,false);
  await assert.rejects(service(db,T,req('t1',add({studentIds:['s1','s2']})),now),{code:'permission-denied'});
  await assert.rejects(service(db,T,req('t1',{method:'room',classId:'c2'}),now),{code:'permission-denied'});
- await service(db,T,req('t1',add()),now);await service(db,T,req('t2',add({delta:3})),now);
- const room=await service(db,T,req('t1',{method:'room',classId:'c1'}),now);assert.equal(room.students[0].score,98);assert.equal(room.students[1].score,100);assert.equal(room.events.length,2);
+ await service(db,T,req('t1',add()),now);await service(db,T,req('t2',add({delta:-3})),now);
+ const room=await service(db,T,req('t1',{method:'room',classId:'c1'}),now);assert.equal(room.students[0].score,92);assert.equal(room.students[1].score,100);assert.equal(room.events.length,2);
 });
 test('retries do not duplicate scores and reuse with changed payload fails',async()=>{
  const {db}=memory();await service(db,T,req('t1',add()),now);const result=await service(db,T,req('t1',add()),now);assert.equal(result.replayed,true);
- await assert.rejects(service(db,T,req('t1',add({delta:10})),now),{code:'already-exists'});
+ await assert.rejects(service(db,T,req('t1',add({delta:-10})),now),{code:'already-exists'});
  assert.equal((await service(db,T,req('t1',{method:'room',classId:'c1'}),now)).students[0].score,95);
 });
 test('invalid or inactive students make the whole group fail without partial writes',async()=>{
@@ -47,4 +47,19 @@ test('revoked permission and disabled manager are denied',async()=>{
 });
 test('rejects invalid dates, values, duplicate targets and spoofed author fields',async()=>{
  const {db}=memory();for(const change of [{date:'2026-02-30'},{date:'2026-10-27'},{delta:0},{delta:101},{delta:1.5},{reason:' '},{studentIds:['s1','s1']},{teacherUid:'manager'},{studentIds:Array.from({length:101},(_,i)=>'s'+i)}])await assert.rejects(service(db,T,req('t1',add(change)),now),{code:'invalid-argument'});
+});
+
+test('all accounts must use requests for positive scores; invalid categories cannot be saved',async()=>{
+ const {db,docs}=memory();
+ for(const uid of ['t1','manager'])await assert.rejects(service(db,T,req(uid,add({delta:5})),now),{code:'permission-denied'});
+ for(const category of [undefined,'unknown','unspecified',{},5])await assert.rejects(service(db,T,req('t1',add({category})),now),{code:'invalid-argument'});
+ assert.equal([...docs.keys()].filter(p=>p.startsWith('attendance_behavior/')).length,0);
+});
+test('deduction category is persisted and retry cannot silently change categories; legacy records remain readable',async()=>{
+ const {db,docs}=memory();await service(db,T,req('t1',add({category:'substances'})),now);
+ await assert.rejects(service(db,T,req('t1',add({category:'theft'})),now),{code:'already-exists'});
+ docs.set('attendance_behavior/legacy',{classId:'c1',studentId:'s2',delta:-7,reason:'Legacy',day:T.fromDate(now)});
+ const room=await service(db,T,req('t1',{method:'room',classId:'c1'}),now);
+ assert.equal(room.events.find(e=>e.reason==='Synthetic test').category,'substances');
+ assert.equal(room.events.find(e=>e.id==='legacy').category,'unspecified');
 });

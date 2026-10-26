@@ -7,3 +7,5 @@
 #requestFields>.filters:first-child{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
 #requestFields>.filters:first-child>.field{min-width:0}
 @media(max-width:600px){#requestFields>.filters:first-child{grid-template-columns:minmax(0,1fr)}}
+
+.behavior-overview{margin-bottom:24px}.behavior-overview>.fine-print{margin:8px 0 16px}.deduction-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.deduction-card{padding:16px;border:1px solid var(--line);border-radius:14px;background:#fcfaff;min-width:0}.deduction-card h3{font-size:13px;margin:0 0 10px;min-height:3.3em}.deduction-card strong{display:block;font-size:26px;color:var(--red);overflow-wrap:anywhere}.deduction-card strong small{font-size:10px;font-weight:normal}.deduction-card p{font-size:11px;color:var(--muted)}@media(max-width:420px){.deduction-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.deduction-card{padding:12px}.deduction-card strong{font-size:23px}.deduction-card strong small{display:block}}
