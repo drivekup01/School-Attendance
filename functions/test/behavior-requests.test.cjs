@@ -48,3 +48,9 @@ test('photo/date validation, quotas and request schemas reject malformed input',
 test('anonymous visitors and unrelated school accounts cannot access requests',async()=>{
  const {db}=memory();await assert.rejects(service(db,T,{data:{method:'list'}},now),{code:'unauthenticated'});await assert.rejects(service(db,T,req('unknown',{method:'list'}),now),{code:'permission-denied'});
 });
+test('manager can request and award students from different authorized rooms together',async()=>{
+ const {db,docs}=memory();docs.set('attendance_classes/c2/students/s3',{number:1,name:'Synthetic Three',code:'003'});
+ const result=await service(db,T,req('manager',{method:'submit',form:form({students:[{classId:'c1',studentId:'s1'},{classId:'c2',studentId:'s3'}]})}),now);
+ await service(db,T,req('manager',{method:'approve',requestId:result.id,note:''}),now);await service(db,T,req('manager',{method:'award',requestId:result.id}),now);
+ const events=[...docs.entries()].filter(([p])=>p.startsWith('attendance_behavior/')).map(([,d])=>d);assert.deepEqual(events.map(x=>x.classId).sort(),['c1','c2']);assert.ok(events.every(x=>x.delta===5&&x.sourceRequestId===result.id));
+});
