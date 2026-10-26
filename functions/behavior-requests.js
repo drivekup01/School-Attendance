@@ -53,8 +53,9 @@ async function service(db,T,request,now=new Date()){
   if(!id(input.requestId)||input.method==='approve'&&!text(input.note,300,false))fail('invalid-argument','ข้อมูลการอนุมัติไม่ถูกต้อง');
   const ref=collection.doc(input.requestId);
   return db.runTransaction(async tx=>{
-   const [snap,grant,profile]=await Promise.all([tx.get(ref),tx.get(db.doc('attendance_behavior_managers/'+managerId(a.email))),tx.get(db.doc('school_users/'+a.uid))]);
-   if(!grant.exists||grant.data().active!==true||grant.data().email!==a.email||profile.exists&&profile.data().active!==true)fail('permission-denied','สิทธิ์ผู้อนุมัติมีการเปลี่ยนแปลง');
+   const [snap,grant,profile,legacy]=await Promise.all([tx.get(ref),tx.get(db.doc('attendance_behavior_managers/'+managerId(a.email))),tx.get(db.doc('school_users/'+a.uid)),tx.get(db.doc('attendance_teachers/'+a.uid))]);
+   const admin=profile.exists?profile.data().active===true&&profile.data().attendanceRole==='admin':legacy.exists&&legacy.data().active===true&&legacy.data().role==='admin'&&legacy.data().email?.toLowerCase()===a.email;
+   if(!(admin||grant.exists&&grant.data().active===true&&grant.data().email===a.email)||profile.exists&&profile.data().active!==true)fail('permission-denied','สิทธิ์ผู้อนุมัติมีการเปลี่ยนแปลง');
    if(!snap.exists)fail('not-found','ไม่พบคำร้อง');const d=snap.data(),stamp=T.fromDate(now);
    if(d.status==='awarded')return {id:ref.id,status:'awarded',count:d.students.length,replayed:true};
    if(input.method==='approve'?!['pending','approved'].includes(d.status):d.status!=='approved')fail('failed-precondition','ต้องอนุมัติเอกสารก่อนเพิ่มคะแนน');

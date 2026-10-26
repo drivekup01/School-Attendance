@@ -1,6 +1,6 @@
-import {shell,heading,empty,notify,friendlyError,setIdentity} from './shell.js?v=20261025-navigation1';
+import {shell,heading,empty,notify,friendlyError,setIdentity} from './shell.js?v=20261026-adminall1';
 import {today,thaiDate,escapeHTML as e} from './core.js?v=20261025-firebase2';
-import {isDemo} from './session.js?v=20261025-firebase2';
+import {isDemo} from './session.js?v=20261026-adminall1';
 import {icon} from './icons.js?v=20261025-firebase2';
 import {behaviorCategories,categoryDescriptions,deductionSummary} from './behavior-categories.js?v=20261026-categories1';
 shell('behavior');

@@ -30,7 +30,8 @@ async function actor(db,request){
  const manager=grant?.active===true&&grant.email===email;
  const teacher=profile?profile.active===true&&['teacher','admin'].includes(profile.attendanceRole):legacy?.active===true&&legacy.email?.toLowerCase()===email;
  if(!manager&&!teacher)fail('permission-denied','บัญชีนี้ยังไม่ได้รับสิทธิ์ความประพฤติ');
- return {uid:a.uid,email,manager,admin:teacher&&(profile?profile.attendanceRole==='admin':legacy.role==='admin'),name:manager?grant.name:profile?.name||legacy?.name||a.token.name||'ครูผู้บันทึก'};
+ const admin=teacher&&(profile?profile.attendanceRole==='admin':legacy.role==='admin');
+ return {uid:a.uid,email,manager:manager||admin,admin,name:manager?grant.name:profile?.name||legacy?.name||a.token.name||'ครูผู้บันทึก'};
 }
 async function access(db,a,classId){
  if(a.manager)return {read:true,write:true};
@@ -69,7 +70,8 @@ async function service(db,Timestamp,request,now=new Date()){
   const [central,manager,acl,liveRoom,legacy]=await Promise.all([tx.get(db.doc('school_users/'+a.uid)),tx.get(db.doc('attendance_behavior_managers/'+managerId(a.email))),tx.get(db.doc('attendance_access/'+a.uid+'/classes/'+input.classId)),tx.get(roomRef),tx.get(db.doc('attendance_teachers/'+a.uid))]);
   if(central.exists&&central.data().active!==true)fail('permission-denied','บัญชีนี้ถูกระงับ');
   const liveManager=value(manager),liveACL=value(acl);
-  const isManager=liveManager?.active===true&&liveManager.email===a.email;
+  const isAdmin=central.exists?central.data().active===true&&central.data().attendanceRole==='admin':legacy.exists&&legacy.data().active===true&&legacy.data().role==='admin'&&legacy.data().email?.toLowerCase()===a.email;
+  const isManager=isAdmin||liveManager?.active===true&&liveManager.email===a.email;
   const centralAllowed=central.exists?central.data().active===true&&['teacher','admin'].includes(central.data().attendanceRole):legacy.exists&&legacy.data().active===true&&legacy.data().email?.toLowerCase()===a.email;
   if(!liveRoom.exists||liveRoom.data().active!==true||!isManager&&(!centralAllowed||liveACL?.active!==true||liveACL.canRead!==true||liveACL.canBehavior!==true||input.studentIds.length!==1))fail('permission-denied','สิทธิ์ห้องมีการเปลี่ยนแปลง กรุณาโหลดใหม่');
   const roster=await Promise.all(payload.studentIds.map(s=>tx.get(roomRef.collection('students').doc(s))));

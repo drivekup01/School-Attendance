@@ -1,7 +1,7 @@
-import {boot,heading,empty,notify} from './shell.js?v=20261025-navigation1';
+import {boot,heading,empty,notify} from './shell.js?v=20261026-adminall1';
 import {today,validateRange,escapeHTML as e} from './core.js?v=20261025-firebase2';
 import {icon} from './icons.js?v=20261025-firebase2';
-import {isDemo} from './session.js?v=20261025-firebase2';
+import {isDemo} from './session.js?v=20261026-adminall1';
 import {reportRows,csvExport,xlsxExport} from './export.js?v=20261025-firebase2';
 boot('reports',async ctx=>{
  const day=today(),classes=[...new Map(ctx.assignments.map(a=>[a.classId,a])).values()];let rows=[],records=[],loadedKind='',loadedName='';

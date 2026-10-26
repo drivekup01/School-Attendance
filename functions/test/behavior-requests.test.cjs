@@ -67,12 +67,13 @@ test('legacy approved requests can complete without losing the original approval
  assert.equal(docs.get(path).approvalNote,'Original note');assert.equal([...docs.keys()].filter(k=>k.startsWith('attendance_behavior/')).length,2);
 });
 
-test('attendance admin can submit for readable rooms without per-room ACL but cannot approve',async()=>{
+test('attendance admin can submit and approve requests without per-room ACL',async()=>{
  const {db,docs}=memory();docs.set('school_users/admin',{name:'Synthetic Admin',active:true,attendanceRole:'admin'});
  const saved=await service(db,T,req('admin',{method:'submit',form:form()}),now);
  assert.equal(saved.status,'pending');assert.equal(docs.get('attendance_behavior_requests/'+saved.id).teacherUid,'admin');
  assert.equal([...docs.keys()].filter(p=>p.startsWith('attendance_behavior/')).length,0);
- await assert.rejects(service(db,T,req('admin',{method:'approve',requestId:saved.id,note:''}),now),{code:'permission-denied'});
+ assert.equal((await service(db,T,req('admin',{method:'approve',requestId:saved.id,note:''}),now)).status,'awarded');
+ assert.equal([...docs.keys()].filter(p=>p.startsWith('attendance_behavior/')).length,2);
 });
 test('legacy attendance admin can submit without ACL; central role downgrade overrides legacy admin',async()=>{
  const {db,docs}=memory();docs.set('attendance_teachers/legacy',{name:'Legacy Admin',email:'legacy@kbws.ac.th',active:true,role:'admin'});
