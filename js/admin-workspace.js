@@ -1,7 +1,7 @@
 import {teacherLessons,teacherTimetableHTML} from './admin-timetable.js?v=20261026-timetable2';
 import {mergeStaff} from './admin-staff.js?v=20261026-staffmerge1';
 import {escapeHTML as e,today} from './core.js?v=20261025-firebase2';
-import {notify} from './shell.js?v=20261026-adminall1';
+import {notify} from './shell.js?v=20261027-roles1';
 const weekdays=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const types={morning:'ห้องประจำชั้น / เข้าแถว',subject:'รายวิชา',substitute:'สอนแทน'};
 const field=(name,label,type='text',options=[])=>({name,label,type,options});
@@ -12,7 +12,7 @@ function dialog(title,fields,initial={}){
  document.body.append(el);el.showModal();return new Promise(resolve=>{const close=value=>{el.close();el.remove();resolve(value);};form.onsubmit=ev=>{ev.preventDefault();const value={...initial};for(const f of fields)value[f.name]=f.type==='checkbox'?form.elements[f.name].checked:f.type==='number'?Number(form.elements[f.name].value):form.elements[f.name].value.trim();close(value);};el.querySelector('[data-cancel]').onclick=()=>close(null);el.oncancel=ev=>{ev.preventDefault();close(null);};});
 }
 export async function adminWorkspace(host,{isDemo=false}={}){
- const call=async data=>isDemo?(await import('./admin-workspace-demo.js?v=20261026-adminall1')).adminCall(data):(await import('./school-auth.js?v=20261025-firebase2')).call('attendanceAdmin',data);
+ const call=async data=>isDemo?(await import('./admin-workspace-demo.js?v=20261026-adminall1')).adminCall(data):(await import('./school-auth.js?v=20261027-roles1')).call('attendanceAdmin',data);
  let data,chosen='',search='',nativeTeacher='',students=[],studentClass='';
  host.innerHTML='<section class="panel"><div class="panel-heading"><div><h2>ตรวจสอบครูและข้อมูลที่มอบหมาย</h2><p class="fine-print">ดูข้อมูลครูทุกคนจากบัญชีผู้ดูแล ไม่ต้องใช้รหัสผ่านครู</p></div><button class="button ghost" data-reload>โหลดล่าสุด</button></div><div data-admin-body></div></section><section class="panel admin-assignment" data-admin-edit></section>';
  async function load(){host.querySelector('[data-reload]').disabled=true;try{data=await call({method:'list'});render();renderEdit();}catch(error){notify(error.message,true);host.querySelector('[data-admin-body]').textContent=error.message;}finally{host.querySelector('[data-reload]').disabled=false;}}
