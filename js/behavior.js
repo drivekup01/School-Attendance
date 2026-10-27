@@ -2,13 +2,13 @@ import {shell,heading,empty,notify,friendlyError,setIdentity} from './shell.js?v
 import {today,thaiDate,escapeHTML as e} from './core.js?v=20261025-firebase2';
 import {isDemo} from './session.js?v=20261026-adminall1';
 import {icon} from './icons.js?v=20261025-firebase2';
-import {behaviorCategories,categoryDescriptions,deductionSummary} from './behavior-categories.js?v=20261026-categories1';
+import {behaviorCategories,categoryDescriptions,deductionSummary} from './behavior-categories.js?v=20261027-request-edit1';
 shell('behavior');
 const host=document.querySelector('#pageContent');
 let classes=[],students=[],events=[],canBulk=false,canWrite=false,version=0,busy=false,pending;
 async function call(input){
  if(!isDemo)return (await import('./school-auth.js?v=20261025-firebase2')).call('attendanceBehavior',input);
- const {demo}=await import('./demo.js?v=20261026-approval2');
+ const {demo}=await import('./demo.js?v=20261027-request-edit1');
  if(input.method==='classes')return {canBulk:new URLSearchParams(location.search).get('view')==='admin',classes:[...new Map((await demo.assignments()).filter(a=>a.kind==='morning').map(a=>[a.classId,{id:a.classId,name:a.className,canWrite:true}])).values()]};
  if(input.method==='room'){const [roster,ledger]=await Promise.all([demo.students(input.classId),demo.behavior(input.classId)]);return {canWrite:true,students:roster.map(s=>{const delta=ledger.filter(x=>x.studentId===s.id).reduce((n,x)=>n+x.delta,0);return {...s,score:100+delta,delta};}),events:ledger.map(x=>({...x,author:'ครูตัวอย่าง'}))};}
  if(input.delta>0)throw Error('การเพิ่มคะแนนทุกครั้งต้องยื่นแบบคำร้องและได้รับอนุมัติก่อน');
@@ -26,7 +26,7 @@ function draw(){
  const totals=deductionSummary(events);
  host.querySelector('#behaviorOverview').innerHTML='<h2>ภาพรวมการตัดคะแนนความประพฤติ</h2><p class="fine-print">'+e(classes.find(c=>c.id===host.querySelector('#behaviorClass').value)?.name||'ยังไม่ได้เลือกห้อง')+' · รวมประวัติทุกคนในห้องที่เลือก · จำนวนรายการนับแยกต่อนักเรียน</p><div class="deduction-cards">'+Object.entries(behaviorCategories).map(([key,label])=>'<article class="deduction-card"><h3>'+e(label)+'</h3><strong>'+totals[key].points.toLocaleString('th-TH')+' <small>คะแนนที่ตัด</small></strong><p>'+totals[key].count.toLocaleString('th-TH')+' รายการ</p></article>').join('')+'</div>';
  host.querySelector('#eventCount').textContent=(group?events:list).length+' รายการ';
- host.querySelector('#behaviorHistory').innerHTML=(group?events:list).length?(group?events:list).map(x=>`<article class="behavior-event"><span class="event-icon ${x.delta<0?'negative':''}">${icon('behavior')}</span><div><strong>${e(x.reason)}</strong><small>${group?e(students.find(s=>s.id===x.studentId)?.name||'นักเรียน')+' · ':''}${x.delta<0?e(behaviorCategories[x.category]||behaviorCategories.unspecified)+' · ':''}${e(thaiDate(x.date))} · ${e(x.author||'ครูผู้บันทึก')}</small></div><strong class="event-delta ${x.delta<0?'negative':''}">${x.delta>0?'+':''}${x.delta}</strong></article>`).join(''):empty('ยังไม่มีประวัติ','รายการเพิ่ม–ลดคะแนนจะแสดงที่นี่');
+ host.querySelector('#behaviorHistory').innerHTML=(group?events:list).length?(group?events:list).map(x=>`<article class="behavior-event"><span class="event-icon ${x.delta<0?'negative':''}">${icon('behavior')}</span><div><strong>${e(x.reason)}</strong><small>${group?e(students.find(s=>s.id===x.studentId)?.name||'นักเรียน')+' · ':''}${x.delta<0&&!x.sourceRequestId?e(behaviorCategories[x.category]||behaviorCategories.unspecified)+' · ':''}${e(thaiDate(x.date))} · ${e(x.author||'ครูผู้บันทึก')}</small></div><strong class="event-delta ${x.delta<0?'negative':''}">${x.delta>0?'+':''}${x.delta}</strong></article>`).join(''):empty('ยังไม่มีประวัติ','รายการเพิ่ม–ลดคะแนนจะแสดงที่นี่');
  host.querySelector('#permissionNote').textContent=canWrite?(canBulk?'ผู้ดูแลความประพฤติ · บันทึกรายคนหรือแบบกลุ่มได้':'บันทึกได้ทีละคนในห้องที่ได้รับสิทธิ์'):'ห้องนี้ดูคะแนนได้อย่างเดียว หากต้องการบันทึกให้ติดต่อผู้ดูแลมอบหมายสิทธิ์ความประพฤติ';
 }
 async function load(){
@@ -57,6 +57,6 @@ async function start(){
   finally{busy=false;host.querySelectorAll('#behaviorClass,#behaviorRefresh,[name=mode],#selectAll,[data-student]').forEach(x=>x.disabled=false);host.querySelector('#behaviorClass').disabled=!classes.length;host.querySelector('#behaviorStudent').disabled=!students.length;draw();}
  };
  await load();
- await (await import('./behavior-requests.js?v=20261026-signers1')).mountRequests({host,setup,isDemo,behaviorCall:call,refreshScores:load});
+ await (await import('./behavior-requests.js?v=20261027-request-edit1')).mountRequests({host,setup,isDemo,behaviorCall:call,refreshScores:load});
 }
 start().catch(error=>{host.innerHTML=heading('','คะแนนความประพฤติ','เข้าสู่ระบบตามสิทธิ์ที่โรงเรียนมอบหมาย')+empty('ยังเปิดใช้งานไม่ได้',friendlyError(error),'<button class="button" onclick="location.reload()">ลองใหม่</button> <button class="button secondary" id="behaviorLogin">เข้าสู่ระบบ / เปลี่ยนบัญชี</button>');host.querySelector('#behaviorLogin').onclick=()=>document.querySelector('#authButton').click();});

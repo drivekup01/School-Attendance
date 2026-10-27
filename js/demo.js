@@ -32,9 +32,13 @@ export const demo={
    if(!item.reason?.trim()||item.reason.length>300)throw Error('ระบุเหตุผลไม่เกิน 300 ตัวอักษร');
    const saved={...item,id:crypto.randomUUID(),teacherUid:demoUser.uid,createdAt:new Date().toISOString()};state.behavior.unshift(saved);persist();return saved;
  },
+ async reverseRequest(request,revision){
+   const entries=request.students.map((s,i)=>({id:'request_'+request.id+'_reverse_'+revision+'_'+i,classId:s.classId,studentId:s.studentId,delta:-request.points,sourceRequestId:request.id,reason:'คืนคะแนนคำร้องทดลอง: '+request.activity,date:request.endDate,teacherUid:demoUser.uid,createdAt:new Date().toISOString()}));
+   state={...state,behavior:[...entries.filter(e=>!state.behavior.some(old=>old.id===e.id)),...state.behavior]};persist();
+ },
  async awardRequest(request){
    if(!['pending','approved'].includes(request.status))throw Error('คำร้องไม่พร้อมอนุมัติ');
-   const entries=request.students.map((student,index)=>({id:'request_'+request.id+'_'+index,classId:student.classId,studentId:student.studentId,delta:request.points,reason:'คำร้องทดลอง: '+request.activity,date:request.endDate,teacherUid:demoUser.uid,createdAt:new Date().toISOString()}));
+   const entries=request.students.map((student,index)=>({id:'request_'+request.id+'_revision_'+(request.revision||0)+'_'+index,classId:student.classId,studentId:student.studentId,delta:request.points,sourceRequestId:request.id,reason:'คำร้องทดลอง: '+request.activity,date:request.endDate,teacherUid:demoUser.uid,createdAt:new Date().toISOString()}));
    const next={...state,behavior:[...entries.filter(item=>!state.behavior.some(old=>old.id===item.id)),...state.behavior]};
    sessionStorage.setItem(key,JSON.stringify(next));state=next;
  },
