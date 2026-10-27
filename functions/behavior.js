@@ -1,6 +1,7 @@
 'use strict';
 const {createHash}=require('node:crypto');
 const {dayAt,currentClasses}=require('./overview');
+const {timetable,selectClasses}=require('./class-catalog');
 const fail=(code,message)=>{throw Object.assign(new Error(message),{code});};
 const id=s=>typeof s==='string'&&/^[A-Za-z0-9_-]{1,100}$/.test(s);
 const managerId=email=>createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
@@ -52,7 +53,7 @@ async function service(db,Timestamp,request,now=new Date()){
   let classes;
   if(a.readAll||a.admin)classes=(await db.collection('attendance_classes').where('active','==',true).get()).docs.map(d=>({id:d.id,...d.data()}));
   else {const acl=(await db.collection('attendance_access').doc(a.uid).collection('classes').get()).docs.filter(d=>d.data().active===true&&d.data().canRead===true);classes=acl.length?(await db.getAll(...acl.map(d=>db.doc('attendance_classes/'+d.id)))).filter(d=>d.exists).map(d=>({id:d.id,...d.data()})):[];}
-  classes=currentClasses(classes,Number(dayAt(now).slice(0,4))+543);
+  const native=await timetable(db);if(native&&!a.readAll&&!a.admin){const allowed=new Set(classes.map(c=>c.id)),all=(await db.collection('attendance_classes').where('active','==',true).get()).docs.map(d=>({id:d.id,...d.data()}));classes=selectClasses(all,native).filter(c=>allowed.has(c.id));}else classes=selectClasses(classes,native)||currentClasses(classes,Number(dayAt(now).slice(0,4))+543);
   const rooms=await Promise.all(classes.map(async c=>({id:c.id,name:c.name,canWrite:(await access(db,a,c.id)).write})));
   return {manager:a.manager,canBulk:a.manager,canApproveRequests:a.canApprove,canSubmitRequests:a.canSubmit,canDeleteRequests:a.canDelete,canDirectPoints:a.canDirectPoints,baseScore:100,classes:rooms};
  }

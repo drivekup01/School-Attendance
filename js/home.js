@@ -1,13 +1,13 @@
-import {demoHome,lessonHTML} from './home-data.js?v=20261027-home1';
-import {renderOverview} from './overview.js?v=20261026-classfilter2';
-import {boot,heading,empty} from './shell.js?v=20261027-home1';
-import {isDemo,url} from './session.js?v=20261027-home1';
-import {today,thaiDate,escapeHTML as e} from './core.js?v=20261025-firebase2';
-import {icon} from './icons.js?v=20261025-firebase2';
+import {demoHome,lessonHTML} from './home-data.js?v=20261027-catalog1';
+import {renderOverview} from './overview.js?v=20261027-catalog1';
+import {boot,heading,empty} from './shell.js?v=20261027-catalog1';
+import {isDemo,url} from './session.js?v=20261027-catalog1';
+import {today,thaiDate,escapeHTML as e} from './core.js?v=20261027-catalog1';
+import {icon} from './icons.js?v=20261027-catalog1';
 boot('index',async(ctx)=>{
  const {user,assignments}=ctx;
  const day=today();
- const summary=user&&(isDemo||user.active&&['admin','teacher','viewer'].includes(user.attendanceRole))?(isDemo?demoHome(assignments,user,day):await (await import('./school-auth.js?v=20261027-roles1')).call('schoolIdentity',{method:'attendanceHome',date:day})):null;
+ const summary=user&&(isDemo||user.active&&['admin','teacher','viewer'].includes(user.attendanceRole))?(isDemo?demoHome(assignments,user,day):await (await import('./school-auth.js?v=20261027-catalog1')).call('schoolIdentity',{method:'attendanceHome',date:day})):null;
  const school=summary?.scope==='school',lessons=summary?.lessons||[];
  document.querySelector('#pageContent').innerHTML=heading('ระบบดูแลนักเรียน','วันนี้ของคุณครู','เช็คชื่อ ติดตามการเข้าเรียน และดูแลนักเรียนในที่เดียว',`<div class="date-pill">${icon('calendar')} ${thaiDate(day)}</div>`)+`
  <section class="welcome"><div><span class="eyebrow">${isDemo?'พื้นที่ทดลองสำหรับคุณครู':'ยินดีต้อนรับ'}</span><h2>${user?'สวัสดี '+e(user.name):'เริ่มวันใหม่ ดูแลนักเรียนไปด้วยกัน'}</h2><p>${isDemo?'ลองเช็คชื่อ บันทึกคะแนน และส่งออกรายงานได้เลย':'เข้าสู่ระบบด้วยบัญชี Google ของโรงเรียน แล้วดูห้องและคาบที่คุณรับผิดชอบ'}</p><a class="button" href="${url('morning')}">${icon('morning')} เช็คชื่อเข้าแถวเช้า ${icon('arrow')}</a></div><div class="welcome-art" aria-hidden="true"><div class="art-calendar">${icon('calendar')}<strong>${new Date(day+'T12:00:00+07:00').getDate()}</strong><span>ดูแลทุกการมาเรียน</span></div><span class="art-check">${icon('check')}</span></div></section>
@@ -15,7 +15,7 @@ boot('index',async(ctx)=>{
  <div class="grid home-grid"><section class="panel"><div class="panel-heading"><h2>${icon('subject')} ${school?'คาบสอนทั้งโรงเรียนวันนี้':'คาบสอนของฉันวันนี้'}</h2><a class="text-link" href="${url('subject')}">ดูตาราง ${icon('arrow')}</a></div>${lessons.length?lessons.map(a=>lessonHTML(a,{school,isDemo,date:day,url})).join(''):empty('ไม่มีคาบสอนในวันนี้','ข้อมูลตามตารางสอนต้นทางและวันที่แสดง')}</section>
  <section class="panel quick-panel"><div class="panel-heading"><h2>เครื่องมือของคุณครู</h2></div><a class="quick-link" href="${url('behavior')}"><span class="quick-icon">${icon('behavior')}</span><div><strong>คะแนนความประพฤติ</strong><small>บันทึกและติดตามพฤติกรรมนักเรียน</small></div>${icon('arrow')}</a><a class="quick-link" href="${url('reports')}"><span class="quick-icon">${icon('reports')}</span><div><strong>รายงาน / ส่งออก</strong><small>เลือกห้อง ช่วงวันที่ และรูปแบบไฟล์</small></div>${icon('arrow')}</a><div class="privacy-note">${icon('shield')}<p>ดูข้อมูลได้ทุกห้อง แก้ไขเช็คชื่อได้เฉพาะห้องและคาบที่ได้รับมอบหมาย</p></div>${!isDemo?'<button id="mobileLogin" class="button secondary block">'+(user?'ออกจากระบบ':'เข้าสู่ระบบด้วย Google')+'</button>':''}</section></div>`;
  if(user?.role==='viewer'&&!user.schoolRole){document.querySelector('#pageContent').innerHTML=heading('','สถานะนักเรียนวันนี้','สรุปผลการเข้าแถวเช้าของโรงเรียน');document.querySelectorAll('.sidebar nav a,.mobile-nav a').forEach(a=>{if(!a.href.includes('index.html'))a.hidden=true;});document.querySelector('#userRole').textContent='ผู้ใช้งานทั่วไป · ดูอย่างเดียว';}
- if(user?.role==='viewer'&&!user.schoolRole&&!isDemo){try{const setup=await (await import('./school-auth.js?v=20261027-roles1')).call('attendanceBehavior',{method:'classes'});if(setup.canBulk){document.querySelectorAll('.sidebar nav a,.mobile-nav a').forEach(a=>{if(a.href.includes('behavior.html'))a.hidden=false;});document.querySelector('#userRole').textContent='ผู้ดูแลความประพฤติ';document.querySelector('#pageContent').insertAdjacentHTML('beforeend','<section class="panel"><h2>คะแนนความประพฤติ</h2><p>คะแนนกลางเริ่มต้น 100 คะแนน · บันทึกรายคนและแบบกลุ่ม</p><a class="button" href="'+url('behavior')+'">เปิดงานความประพฤติ →</a></section>');}}catch{}}
+ if(user?.role==='viewer'&&!user.schoolRole&&!isDemo){try{const setup=await (await import('./school-auth.js?v=20261027-catalog1')).call('attendanceBehavior',{method:'classes'});if(setup.canBulk){document.querySelectorAll('.sidebar nav a,.mobile-nav a').forEach(a=>{if(a.href.includes('behavior.html'))a.hidden=false;});document.querySelector('#userRole').textContent='ผู้ดูแลความประพฤติ';document.querySelector('#pageContent').insertAdjacentHTML('beforeend','<section class="panel"><h2>คะแนนความประพฤติ</h2><p>คะแนนกลางเริ่มต้น 100 คะแนน · บันทึกรายคนและแบบกลุ่ม</p><a class="button" href="'+url('behavior')+'">เปิดงานความประพฤติ →</a></section>');}}catch{}}
  const overviewHost=document.createElement('div');document.querySelector('#pageContent .page-heading').after(overviewHost);await renderOverview(overviewHost,{...ctx,isDemo});
  document.querySelector('#mobileLogin')?.addEventListener('click',()=>document.querySelector('#authButton').click());
 });

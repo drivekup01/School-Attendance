@@ -1,4 +1,4 @@
-import {escapeHTML as e} from './core.js?v=20261025-firebase2';
+import {escapeHTML as e} from './core.js?v=20261027-catalog1';
 
 function dateParts(value){
  const [year,month,day]=String(value).split('-').map(Number);

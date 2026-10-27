@@ -1,18 +1,19 @@
-import {displayDayFirst} from './date-input.js?v=20261025-date1';
-import {heading,empty,notify} from './shell.js?v=20261027-roles1';
-import {today,thaiDate,assignmentsOn,counts,statuses,escapeHTML as e,validateMarks,validDate} from './core.js?v=20261025-firebase2';
-import {icon} from './icons.js?v=20261025-firebase2';
-import {isDemo} from './session.js?v=20261027-roles1';
+import {displayDayFirst} from './date-input.js?v=20261027-catalog1';
+import {heading,empty,notify} from './shell.js?v=20261027-catalog1';
+import {today,thaiDate,assignmentsOn,counts,statuses,escapeHTML as e,validateMarks,validDate} from './core.js?v=20261027-catalog1';
+import {icon} from './icons.js?v=20261027-catalog1';
+import {isDemo} from './session.js?v=20261027-catalog1';
 export async function attendancePage(ctx,kind){
  const requestedDate=new URLSearchParams(location.search).get('date');
  const morning=kind==='morning';let date=validDate(requestedDate||'')&&requestedDate<=today()?requestedDate:today(),assignment,students=[],marks={},revision=0,dirty=false,busy=false,loadVersion=0,savedAt='';
- const all=ctx.assignments.filter(a=>morning?a.kind==='morning':a.kind!=='morning');
+ let all=ctx.assignments.filter(a=>morning?a.kind==='morning':a.kind!=='morning');
  document.querySelector('#pageContent').innerHTML=heading('',morning?'เช็คชื่อเข้าแถวเช้า':'เช็คชื่อรายวิชา / สอนแทน',morning?'บันทึกเฉพาะการเข้าแถวตอนเช้า แยกจากการเข้าเรียนรายวิชา':'เลือกคาบตามตารางสอน หรือคาบสอนแทนที่ได้รับมอบหมาย')+`
- <div class="filters"><label class="field"><span>วันที่เช็คชื่อ</span><input id="attendanceDate" type="date" value="${date}" max="${today()}" required></label><label class="field"><span>${ctx.user?.role==='admin'?'ห้อง / คาบสอนทุกคน':morning?'ห้องประจำชั้น':'คาบสอนของฉัน'}</span><select id="assignmentSelect" ${!all.length?'disabled':''}><option value="">${all.length?'เลือกห้อง / คาบสอน':'ยังไม่มีงานที่ได้รับมอบหมาย'}</option></select></label><button class="button ghost" id="reload">${icon('clock')} ค้นหา</button></div>
+ ${all[0]?.year?'<p class="fine-print">ปีการศึกษา '+e(all[0].year)+' · ภาคเรียนที่ '+e(all[0].term)+'</p>':''}
+ <div class="filters"><label class="field"><span>วันที่เช็คชื่อ</span><input id="attendanceDate" type="date" value="${date}" max="${today()}" required></label><label class="field"><span>${['admin','viewer'].includes(ctx.user?.role)?(morning?'ห้องเรียนทั้งหมด · ภาคเรียนปัจจุบัน':'คาบ / ห้องเรียนของครูทุกคน'):morning?'ห้องประจำชั้นของฉัน':'คาบ / ห้องเรียนของฉัน'}</span><select id="assignmentSelect" ${!all.length?'disabled':''}><option value="">${all.length?'เลือกห้อง / คาบสอน':'ยังไม่มีงานที่ได้รับมอบหมาย'}</option></select></label><button class="button ghost" id="reload">${icon('clock')} ค้นหา</button></div>
  <div id="assignmentInfo"></div><section id="attendanceStats" class="stats" aria-label="สรุปการเช็คชื่อ"></section><div class="grid two-col"><section class="panel roster-panel"><div class="panel-heading"><h2>รายชื่อนักเรียน <span id="rosterCount" class="muted"></span></h2><div class="roster-tools"><input type="search" id="studentSearch" class="search" placeholder="ค้นหาชื่อ / รหัสนักเรียน" aria-label="ค้นหานักเรียน"><button class="button secondary" id="allPresent" disabled>${icon('check')} มาทั้งหมด</button></div></div><p id="unmarked" class="fine-print"></p><div id="roster"></div><div class="save-bar"><span id="saveState">ยังไม่มีข้อมูลที่บันทึก</span><button id="saveAttendance" class="button" disabled>${icon('check')} ${isDemo?'บันทึกการเช็คชื่อ (ทดลอง)':'บันทึกการเช็คชื่อ'}</button></div></section><aside class="panel summary-panel"><h2>สรุปห้องเรียน</h2><div id="ring" class="ring"><div><strong id="percent">—</strong><small>มาเข้าเรียนตรงเวลา</small></div></div><div id="summaryLegend"></div><p class="fine-print">${morning?'ผลเข้าแถวไม่บันทึกทับผลรายวิชา':'ผลรายวิชาไม่บันทึกทับผลเข้าแถวเช้า'}<br>สถานะที่ยังไม่เลือกจะไม่ถือว่ามาเรียน</p></aside></div>`;
  const select=document.querySelector('#assignmentSelect'),dateInput=document.querySelector('#attendanceDate'),save=document.querySelector('#saveAttendance');
  displayDayFirst(dateInput);
- function options(preferred){const available=assignmentsOn(all,date,kind);select.innerHTML='<option value="">'+(available.length?'เลือกห้อง / คาบสอน':'ไม่มีงานที่ได้รับมอบหมายในวันนี้')+'</option>'+available.map(a=>`<option value="${e(a.id)}">${e(a.className)}${a.teacherName?' • '+e(a.teacherName):''}${morning?'':` • คาบ ${a.period} • ${e(a.subject)}`}</option>`).join('');select.disabled=!available.length;select.value=available.some(a=>a.id===preferred)?preferred:(preferred?'':available[0]?.id||'');}
+ function options(preferred){const available=assignmentsOn(all,date,kind).sort((a,b)=>a.period-b.period||a.className.localeCompare(b.className,'th',{numeric:true})||(a.teacherName||'').localeCompare(b.teacherName||'','th'));select.innerHTML='<option value="">'+(available.length?'เลือกห้อง / คาบสอน':'ไม่มีงานที่ได้รับมอบหมายในวันนี้')+'</option>'+available.map(a=>`<option value="${e(a.id)}">${e(a.className)}${a.teacherName?' • '+e(a.teacherName):''}${morning?'':` • คาบ ${a.period} • ${e(a.subject)}`}</option>`).join('');select.disabled=!available.length;select.value=available.some(a=>a.id===preferred)?preferred:(preferred?'':available[0]?.id||'');}
  const editable=()=>assignment?.canWrite!==false&&ctx.user?.role!=='viewer';
  function updateSummary(){
   const c=counts(students,marks);document.querySelector('#attendanceStats').innerHTML=Object.entries(statuses).map(([status,label])=>`<article class="stat count-${status}"><span>${label}</span><strong>${c[status]} <small>คน</small></strong><small>จาก ${c.total} คน</small></article>`).join('');
@@ -28,7 +29,7 @@ export async function attendancePage(ctx,kind){
  }
  async function load(){
   const version=++loadVersion;assignment=all.find(a=>a.id===select.value);students=[];marks={};revision=0;dirty=false;savedAt='';updateSummary();
-  document.querySelector('#assignmentInfo').innerHTML=assignment?`<div class="assignment-card">${icon(morning?'morning':'subject')}<div><strong>${e(assignment.subject)} • ${e(assignment.className)}</strong><small>${e(assignment.time)} · ${thaiDate(date)}</small></div>${assignment.kind==='substitute'?'<span class="tag substitute">สอนแทน</span>':''}</div>`:'';
+  document.querySelector('#assignmentInfo').innerHTML=assignment?`<div class="assignment-card">${icon(morning?'morning':'subject')}<div><strong>${e(assignment.subject)} • ${e(assignment.className)}</strong><small>${e(assignment.time)} · ${thaiDate(date)}</small></div>${assignment.kind==='substitute'?'<span class="tag substitute">สอนแทน</span>':''}</div>${assignment.virtualSubject?'<p class="fine-print">ตารางสอนจากต้นทาง · คาบนี้ยังไม่เชื่อมรายการเช็คชื่อกับบัญชีครู จึงแสดงข้อมูลได้อย่างเดียว</p>':''}`:'';
   if(!assignment||!ctx.provider){renderRoster();return;}
   document.querySelector('#roster').innerHTML='<div class="loading">กำลังโหลดรายชื่อ…</div>';
   try{const [roster,session]=await Promise.all([ctx.provider.students(assignment.classId),ctx.provider.session(assignment,date)]);if(version!==loadVersion)return;students=roster;marks=session.marks;revision=session.revision;savedAt=session.updatedAt||'';renderRoster();}catch(error){if(version===loadVersion){document.querySelector('#roster').innerHTML=empty('โหลดรายชื่อไม่สำเร็จ',error.message);notify(error.message,true);}}
@@ -37,7 +38,7 @@ export async function attendancePage(ctx,kind){
  options(new URLSearchParams(location.search).get('assignment'));await load();
  select.addEventListener('change',()=>{if(!canLeave()){select.value=assignment?.id||'';return;}load();});
  dateInput.addEventListener('change',()=>{if(!validDate(dateInput.value)||dateInput.value>today()){dateInput.value=date;notify('เลือกวันที่ให้ถูกต้อง และไม่เกินวันนี้',true);return;}if(!canLeave()){dateInput.value=date;return;}date=dateInput.value;options(assignment?.id);load();});
- document.querySelector('#reload').addEventListener('click',()=>{if(canLeave())load();});
+ document.querySelector('#reload').addEventListener('click',async()=>{if(!canLeave())return;try{const fresh=await ctx.provider.assignments();all=fresh.filter(a=>morning?a.kind==='morning':a.kind!=='morning');options(assignment?.id);await load();}catch(error){notify(error.message,true);}});
  document.querySelector('#studentSearch').addEventListener('input',renderRoster);
  document.querySelector('#allPresent').addEventListener('click',()=>{for(const s of students)marks[s.id]={status:'present',note:marks[s.id]?.note||''};dirty=true;renderRoster();});
  document.querySelector('#roster').addEventListener('click',event=>{const b=event.target.closest('[data-status]');if(!b||busy||!editable())return;const id=b.closest('[data-student]').dataset.student;marks[id]={status:b.dataset.status,note:marks[id]?.note||''};dirty=true;b.parentElement.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));updateSummary();});

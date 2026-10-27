@@ -1,4 +1,4 @@
-import {statuses,toCSV,download} from './core.js?v=20261025-firebase2';
+import {statuses,toCSV,download} from './core.js?v=20261027-catalog1';
 export function reportRows(records,kind){
  if(kind==='behavior')return [['วันที่','ห้อง','รหัสนักเรียน','ชื่อ – สกุล','เพิ่ม / ลดคะแนน','เหตุผล','ครูผู้บันทึก'],...records.map(r=>[r.date,r.className,r.studentCode,r.studentName,r.delta,r.reason,r.teacherUid])];
  const rows=[['วันที่','ประเภท','ห้อง','วิชา / กิจกรรม','คาบ','รหัสนักเรียน','เลขที่','ชื่อ – สกุล','สถานะ','หมายเหตุ']];
