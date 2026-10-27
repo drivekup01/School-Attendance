@@ -8,3 +8,5 @@ test('category totals count deductions per student and do not offset them with a
  assert.deepEqual(totals.unspecified,{count:2,points:5});
  assert.deepEqual(totals.violence,{count:0,points:0});
 });
+
+test('request score reversals are not disciplinary deductions',()=>{assert.equal(deductionSummary([{delta:-5,sourceRequestId:'request'}]).unspecified.points,0);});

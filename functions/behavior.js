@@ -56,7 +56,7 @@ async function service(db,Timestamp,request,now=new Date()){
  const roomRef=db.doc('attendance_classes/'+input.classId),room=value(await roomRef.get());if(!room?.active)fail('not-found','ไม่พบห้องเรียนที่เปิดใช้งาน');
  if(input.method==='room'){
   const [roster,ledger]=await Promise.all([roomRef.collection('students').get(),db.collection('attendance_behavior').where('classId','==',input.classId).get()]);
-  const events=ledger.docs.map(d=>{const e=d.data();return {id:d.id,studentId:e.studentId,delta:e.delta,category:categories.includes(e.category)?e.category:'unspecified',reason:e.reason,date:e.day?.toDate?dayAt(e.day.toDate()):'',createdAt:iso(e.createdAt),author:e.authorName||'ครูผู้บันทึก',groupId:e.groupId||null};}).sort((x,y)=>y.createdAt.localeCompare(x.createdAt));
+  const events=ledger.docs.map(d=>{const e=d.data();return {id:d.id,studentId:e.studentId,delta:e.delta,category:categories.includes(e.category)?e.category:'unspecified',reason:e.reason,date:e.day?.toDate?dayAt(e.day.toDate()):'',createdAt:iso(e.createdAt),author:e.authorName||'ครูผู้บันทึก',groupId:e.groupId||null,sourceRequestId:e.sourceRequestId||null};}).sort((x,y)=>y.createdAt.localeCompare(x.createdAt));
   return {baseScore:100,canWrite:rights.write,students:summarize(roster.docs.map(d=>({id:d.id,...d.data()})),events),events};
  }
  if(!rights.write||(!a.manager&&input.studentIds.length!==1))fail('permission-denied','ครูทั่วไปบันทึกได้ทีละคนตามสิทธิ์ห้อง ส่วนแบบกลุ่มใช้ได้เฉพาะผู้ดูแลความประพฤติ');

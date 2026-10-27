@@ -100,3 +100,45 @@ test('print options expose only active names and central suspension overrides le
  const options=await service(db,T,req('t1',{method:'printOptions'}),now);assert.ok(options.names.includes('Legacy Name'));assert.ok(!options.names.includes('Hidden'));assert.ok(!options.names.includes('Old hidden'));assert.deepEqual(Object.keys(options),['names']);assert.ok(!JSON.stringify(options).includes('@'));
  await assert.rejects(service(db,T,{data:{method:'printOptions'}},now),{code:'unauthenticated'});
 });
+const scoreOf=(docs,studentId)=>100+[...docs.entries()].filter(([p,d])=>p.startsWith('attendance_behavior/')&&d.studentId===studentId).reduce((sum,[,d])=>sum+d.delta,0);
+const change=async(db,uid,saved,patch={},revision=0)=>service(db,T,req(uid,{method:'update',requestId:saved.id,revision,form:form(patch)}),now);
+test('teachers edit only their own requests and cannot delete, even via direct API',async()=>{
+ const {db,docs}=memory(),saved=await submit(db);
+ await assert.rejects(change(db,'t2',saved),{code:'permission-denied'});
+ await assert.rejects(service(db,T,req('t1',{method:'delete',requestId:saved.id,revision:0}),now),{code:'permission-denied'});
+ const result=await change(db,'t1',saved,{points:9});assert.equal(result.revision,1);assert.equal(scoreOf(docs,'s1'),100);
+ assert.equal((await service(db,T,req('t1',{method:'detail',requestId:saved.id}),now)).canDelete,false);
+ await assert.rejects(change(db,'t1',saved,{points:7}),{code:'failed-precondition'});
+});
+test('manager edits awarded scores and roster atomically, retaining original ledger and history',async()=>{
+ const {db,docs}=memory(),saved=await submit(db);await service(db,T,req('manager',{method:'approve',requestId:saved.id,note:''}),now);
+ const result=await change(db,'manager',saved,{points:8,students:[{classId:'c1',studentId:'s1'}]},1);
+ assert.equal(result.status,'awarded');assert.equal(scoreOf(docs,'s1'),108);assert.equal(scoreOf(docs,'s2'),100);
+ assert.equal(docs.get('attendance_behavior/request_'+saved.id+'_0').delta,5);
+ assert.equal(docs.get('attendance_behavior_requests/'+saved.id+'/revisions/2').previous.points,5);
+ await assert.rejects(change(db,'manager',saved,{points:99},1),{code:'failed-precondition'});assert.equal(scoreOf(docs,'s1'),108);
+ await service(db,T,req('manager',{method:'delete',requestId:saved.id,revision:2}),now);
+ assert.equal(scoreOf(docs,'s1'),100);assert.equal(scoreOf(docs,'s2'),100);
+ assert.equal((await service(db,T,req('manager',{method:'list'}),now)).requests.length,0);
+ await assert.rejects(service(db,T,req('t1',{method:'detail',requestId:saved.id}),now),{code:'not-found'});
+ await assert.rejects(service(db,T,req('manager',{method:'delete',requestId:saved.id,revision:3}),now),{code:'not-found'});
+ assert.equal(scoreOf(docs,'s1'),100);
+});
+test('teacher edit after award reverses scores and requires reapproval without duplicate award',async()=>{
+ const {db,docs}=memory(),saved=await submit(db);await service(db,T,req('manager',{method:'approve',requestId:saved.id,note:''}),now);
+ await assert.rejects(change(db,'t1',saved,{points:10},0),{code:'failed-precondition'});
+ const result=await change(db,'t1',saved,{points:10},1);assert.equal(result.status,'pending');assert.equal(scoreOf(docs,'s1'),100);
+ assert.equal(docs.get('attendance_behavior_requests/'+saved.id).approvedName,null);
+ await service(db,T,req('manager',{method:'approve',requestId:saved.id,note:''}),now);assert.equal(scoreOf(docs,'s1'),110);
+ await service(db,T,req('manager',{method:'approve',requestId:saved.id,note:''}),now);assert.equal(scoreOf(docs,'s1'),110);
+});
+test('invalid update leaves awarded scores untouched; revoked role cannot delete',async()=>{
+ const {db,docs}=memory(),saved=await submit(db);await service(db,T,req('manager',{method:'approve',requestId:saved.id,note:''}),now);
+ await assert.rejects(change(db,'manager',saved,{students:[{classId:'c1',studentId:'missing'}]},1),{code:'invalid-argument'});assert.equal(scoreOf(docs,'s1'),105);
+ docs.set('school_users/manager',{active:false});await assert.rejects(service(db,T,req('manager',{method:'delete',requestId:saved.id,revision:1}),now),{code:'permission-denied'});assert.equal(scoreOf(docs,'s1'),105);
+});
+test('admin can edit and delete another teacher request without per-room ACL',async()=>{
+ const {db,docs}=memory(),saved=await submit(db);docs.set('school_users/admin',{active:true,attendanceRole:'admin',name:'Admin'});
+ await change(db,'admin',saved,{activity:'Updated by admin'});await service(db,T,req('admin',{method:'delete',requestId:saved.id,revision:1}),now);
+ assert.equal(docs.get('attendance_behavior_requests/'+saved.id).status,'deleted');assert.equal(scoreOf(docs,'s1'),100);
+});
