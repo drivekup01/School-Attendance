@@ -14,7 +14,7 @@ function build({date,classes,assignments,rosters,marks}){
  const latest=new Map();let updated=0;
  for(const mark of marks){const a=morning.get(mark.assignmentId);if(!a||!STATUSES.includes(mark.status)||mark.classId!==a.classId)continue;
   const key=a.classId+'/'+mark.studentId,old=latest.get(key),ts=epoch(mark.updatedAt);
-  if(!old||ts>epoch(old.updatedAt)||(ts===epoch(old.updatedAt)&&String(mark.assignmentId)>String(old.assignmentId)))latest.set(key,mark);
+  if(!old||ts>epoch(old.updatedAt)||(ts===epoch(old.updatedAt)&&((mark.canonicalMorning&&!old.canonicalMorning)||(!!mark.canonicalMorning===!!old.canonicalMorning&&String(mark.assignmentId)>String(old.assignmentId)))))latest.set(key,mark);
  }
  const totals={...zero(),total:0},rooms=classes.map(c=>{
   const counts={...zero(),total:0},students=[];
@@ -34,9 +34,11 @@ async function service(db,Timestamp,request,now=new Date()){
  const classes=currentClasses(classSnap.docs.map(d=>({id:d.id,...d.data()})),Number(date.slice(0,4))+543);
  const rosters=new Map(await Promise.all(classes.map(async c=>[c.id,(await db.collection('attendance_classes').doc(c.id).collection('students').get()).docs.map(d=>({id:d.id,...d.data()}))])));
  const weekday=new Date(date+'T12:00:00+07:00').getUTCDay(),classIds=new Set(classes.map(c=>c.id));
- const assignments=assignSnap.docs.map(d=>({id:d.id,...d.data()})).filter(a=>classIds.has(a.classId)&&(a.weekday===0||a.weekday===weekday)&&epoch(a.from)<=epoch(day)&&epoch(a.to)>=epoch(day));
+ const assignments=assignSnap.docs.map(d=>({id:d.id,...d.data()})).filter(a=>classIds.has(a.classId)&&epoch(a.from)<=epoch(day)&&epoch(a.to)>=epoch(day));
  const markGroups=await Promise.all(assignments.map(async a=>(await db.collection('attendance_assignments').doc(a.id).collection('days').doc(key).collection('marks').get()).docs.map(d=>({...d.data(),assignmentId:a.id,studentId:d.id}))));
- const result=build({date,classes,assignments,rosters,marks:markGroups.flat()});
+ const canonical=classes.map(c=>({id:'morning_'+c.id,kind:'morning',classId:c.id}));
+ const canonicalMarks=await Promise.all(canonical.map(async a=>(await db.collection('attendance_morning_sessions').doc(a.classId+'_'+key).collection('marks').get()).docs.map(d=>({...d.data(),canonicalMorning:true,assignmentId:a.id,studentId:d.id}))));
+ const result=build({date,classes,assignments:[...assignments,...canonical],rosters,marks:[...markGroups.flat(),...canonicalMarks.flat()]});
  if(method==='summary')return {...result,rooms:result.rooms.map(({students,...room})=>room)};
  const room=result.rooms.find(c=>c.id===input.classId);if(!room)fail('not-found','ไม่พบห้องเรียน');
  return {date,classId:room.id,className:room.name,status:input.status,students:room.students.filter(s=>input.status==='all'||s.status===input.status),updatedAt:result.updatedAt};
