@@ -1,6 +1,6 @@
 'use strict';
 const {createHash}=require('node:crypto');
-const {actor,managerId}=require('./behavior');
+const {actor,actorFrom,managerId}=require('./behavior');
 const {dayAt}=require('./overview');
 const fail=(code,message)=>{throw Object.assign(new Error(message),{code});};
 const id=s=>typeof s==='string'&&/^[A-Za-z0-9_-]{1,100}$/.test(s);
@@ -23,7 +23,7 @@ function validate(data,now){
  if(data.evidenceTypes.includes('photo')&&!data.photos.length)fail('invalid-argument','เลือกหลักฐานภาพถ่ายแล้ว กรุณาเพิ่มรูป');
 }
 function publicRecord(s){const d=s.data();return {id:s.id,...d,createdAt:d.createdAt?.toDate?.().toISOString()||'',approvedAt:d.approvedAt?.toDate?.().toISOString()||null,awardedAt:d.awardedAt?.toDate?.().toISOString()||null};}
-function authorized(a,d){return a.manager||d.teacherUid===a.uid;}
+function authorized(a,d){return a.readAll||d.teacherUid===a.uid;}
 async function service(db,T,request,now=new Date()){
  const a=await actor(db,request),input=request.data||{};
  const accepted={list:['method'],printOptions:['method'],detail:['method','requestId'],photo:['method','requestId','photoId'],submit:['method','form'],approve:['method','requestId','note'],award:['method','requestId'],update:['method','requestId','revision','form'],delete:['method','requestId','revision']};
@@ -36,15 +36,15 @@ async function service(db,T,request,now=new Date()){
   return {names:[...new Set(names)].sort((x,y)=>x.localeCompare(y,'th'))};
  }
  if(input.method==='list'){
-  const q=a.manager?collection:collection.where('teacherUid','==',a.uid);
-  const result=await (a.manager?q.orderBy('createdAt','desc').limit(40):q).get();
+  const q=a.readAll?collection:collection.where('teacherUid','==',a.uid);
+  const result=await (a.readAll?q.orderBy('createdAt','desc').limit(40):q).get();
   const sorted=[...result.docs].sort((x,y)=>(y.data().createdAt?.toMillis?.()||0)-(x.data().createdAt?.toMillis?.()||0));
   return {requests:sorted.filter(s=>s.data().status!=='deleted').slice(0,40).map(s=>{const d=s.data();return {id:s.id,requestDate:d.requestDate,activity:d.activity,teacherName:d.teacherName,count:d.students.length,points:d.points,status:d.status};})};
  }
  if(input.method==='detail'||input.method==='photo'){
   if(!id(input.requestId))fail('invalid-argument','รหัสคำร้องไม่ถูกต้อง');
   const ref=collection.doc(input.requestId),snap=await ref.get();if(!snap.exists||snap.data().status==='deleted')fail('not-found','ไม่พบคำร้อง');if(!authorized(a,snap.data()))fail('permission-denied','ไม่มีสิทธิ์ดูคำร้องนี้');
-  if(input.method==='detail')return {...publicRecord(snap),canEdit:authorized(a,snap.data()),canDelete:a.manager,revision:snap.data().revision||0};
+  if(input.method==='detail')return {...publicRecord(snap),canEdit:a.canEditAny||a.canSubmit&&snap.data().teacherUid===a.uid,canDelete:a.canDelete,revision:snap.data().revision||0};
   if(typeof input.photoId!=='string'||!/^p[0-3]$/.test(input.photoId)||!snap.data().photos.some(p=>p.id===input.photoId))fail('invalid-argument','รหัสรูปไม่ถูกต้อง');
   const photo=await ref.collection('photos').doc(input.photoId).get();if(!photo.exists)fail('not-found','ไม่พบรูปแนบ');return photo.data();
  }
@@ -55,10 +55,8 @@ async function service(db,T,request,now=new Date()){
   return db.runTransaction(async tx=>{
    const [snap,p,l,m]=await Promise.all([tx.get(ref),tx.get(db.doc('school_users/'+a.uid)),tx.get(db.doc('attendance_teachers/'+a.uid)),tx.get(db.doc('attendance_behavior_managers/'+managerId(a.email)))]);
    if(!snap.exists||snap.data().status==='deleted')fail('not-found','ไม่พบคำร้อง');
-   const d=snap.data(),profile=get(p),legacy=get(l),grant=get(m);
-   const teacher=profile?profile.active===true&&['teacher','admin'].includes(profile.attendanceRole):legacy?.active===true&&legacy.email?.toLowerCase()===a.email;
-   const manager=grant?.active===true&&grant.email===a.email||teacher&&(profile?profile.attendanceRole==='admin':legacy.role==='admin');
-   if(profile&&profile.active!==true||!manager&&!teacher||!manager&&(input.method==='delete'||d.teacherUid!==a.uid))fail('permission-denied','ไม่มีสิทธิ์จัดการคำร้องนี้');
+   const d=snap.data(),live=actorFrom(request.auth,get(p),get(l),get(m)),manager=live.canEditAny;
+   if(input.method==='delete'?!live.canDelete:!manager&&(!live.canSubmit||d.teacherUid!==a.uid))fail('permission-denied','ไม่มีสิทธิ์จัดการคำร้องนี้');
    if((d.revision||0)!==input.revision)fail('failed-precondition','คำร้องมีการเปลี่ยนแปลง กรุณาโหลดล่าสุดก่อนทำรายการ');
    if(!['pending','approved','awarded'].includes(d.status))fail('failed-precondition','สถานะคำร้องไม่พร้อมแก้ไข');
    const revision=input.revision+1,stamp=T.fromDate(now),form=input.form;
@@ -68,7 +66,7 @@ async function service(db,T,request,now=new Date()){
     const rooms=await Promise.all(classIds.map(async classId=>{
      const [room,acl]=await Promise.all([tx.get(db.doc('attendance_classes/'+classId)),tx.get(db.doc('attendance_access/'+a.uid+'/classes/'+classId))]);
      if(!room.exists||room.data().active!==true)fail('invalid-argument','พบห้องเรียนที่ไม่พร้อมใช้งาน');
-     if(!manager&&(!acl.exists||acl.data().active!==true||acl.data().canRead!==true))fail('permission-denied','ไม่มีสิทธิ์ยื่นรายชื่อของห้องนี้');
+     if(!live.readAll&&!manager&&(!acl.exists||acl.data().active!==true||acl.data().canRead!==true))fail('permission-denied','ไม่มีสิทธิ์ยื่นรายชื่อของห้องนี้');
      return {id:classId,name:room.data().name};
     }));
     const roster=await Promise.all(form.students.map(s=>tx.get(db.doc('attendance_classes/'+s.classId+'/students/'+s.studentId))));
@@ -92,13 +90,12 @@ async function service(db,T,request,now=new Date()){
   });
  }
  if(input.method==='approve'||input.method==='award'){
-  if(!a.manager)fail('permission-denied','เฉพาะผู้ดูแลความประพฤติที่ได้รับมอบหมายเท่านั้น');
+  if(!a.canApprove)fail('permission-denied','บัญชีนี้ไม่มีสิทธิ์อนุมัติคำร้อง');
   if(!id(input.requestId)||input.method==='approve'&&!text(input.note,300,false))fail('invalid-argument','ข้อมูลการอนุมัติไม่ถูกต้อง');
   const ref=collection.doc(input.requestId);
   return db.runTransaction(async tx=>{
    const [snap,grant,profile,legacy]=await Promise.all([tx.get(ref),tx.get(db.doc('attendance_behavior_managers/'+managerId(a.email))),tx.get(db.doc('school_users/'+a.uid)),tx.get(db.doc('attendance_teachers/'+a.uid))]);
-   const admin=profile.exists?profile.data().active===true&&profile.data().attendanceRole==='admin':legacy.exists&&legacy.data().active===true&&legacy.data().role==='admin'&&legacy.data().email?.toLowerCase()===a.email;
-   if(!(admin||grant.exists&&grant.data().active===true&&grant.data().email===a.email)||profile.exists&&profile.data().active!==true)fail('permission-denied','สิทธิ์ผู้อนุมัติมีการเปลี่ยนแปลง');
+   if(!actorFrom(request.auth,get(profile),get(legacy),get(grant)).canApprove)fail('permission-denied','สิทธิ์ผู้อนุมัติมีการเปลี่ยนแปลง');
    if(!snap.exists||snap.data().status==='deleted')fail('not-found','ไม่พบคำร้อง');const d=snap.data(),stamp=T.fromDate(now);
    if(d.status==='awarded')return {id:ref.id,status:'awarded',count:d.students.length,replayed:true};
    if(input.method==='approve'?!['pending','approved'].includes(d.status):d.status!=='approved')fail('failed-precondition','ต้องอนุมัติเอกสารก่อนเพิ่มคะแนน');
@@ -112,21 +109,19 @@ async function service(db,T,request,now=new Date()){
    tx.update(ref,{...approval,status:'awarded',revision:(d.revision||0)+1,awardedBy:a.uid,awardedName:a.name,awardedAt:stamp});return {id:ref.id,status:'awarded',count:d.students.length};
   });
  }
+ if(!a.canSubmit)fail('permission-denied','บัญชีนี้ดูและอนุมัติคำร้องได้ตามสิทธิ์ แต่ยื่นคำร้องไม่ได้');
  const form=input.form;validate(form,now);
  const ref=collection.doc(createHash('sha256').update(a.uid+'_'+form.requestId).digest('hex')),digest=createHash('sha256').update(JSON.stringify(form)).digest('hex');
  const classIds=[...new Set(form.students.map(s=>s.classId))];
  return db.runTransaction(async tx=>{
   const prior=await tx.get(ref);if(prior.exists){if(prior.data().digest!==digest)fail('already-exists','รหัสคำร้องนี้ถูกใช้กับข้อมูลอื่นแล้ว');return {id:ref.id,status:prior.data().status,replayed:true};}
   const [p,l,m]=await Promise.all([tx.get(db.doc('school_users/'+a.uid)),tx.get(db.doc('attendance_teachers/'+a.uid)),tx.get(db.doc('attendance_behavior_managers/'+managerId(a.email)))]);
-  if(p.exists&&p.data().active!==true)fail('permission-denied','บัญชีนี้ถูกระงับ');
-  const manager=m.exists&&m.data().active===true&&m.data().email===a.email;
-  const teacher=p.exists?p.data().active===true&&['teacher','admin'].includes(p.data().attendanceRole):l.exists&&l.data().active===true&&l.data().email?.toLowerCase()===a.email;
-  const admin=teacher&&(p.exists?p.data().attendanceRole==='admin':l.data().role==='admin');
-  if(!manager&&!teacher)fail('permission-denied','สิทธิ์บัญชีมีการเปลี่ยนแปลง');
+  const live=actorFrom(request.auth,get(p),get(l),get(m)),manager=live.manager,admin=live.admin;
+  if(!live.canSubmit)fail('permission-denied','สิทธิ์บัญชีมีการเปลี่ยนแปลง');
   const rooms=await Promise.all(classIds.map(async classId=>{
    const [c,acl]=await Promise.all([tx.get(db.doc('attendance_classes/'+classId)),tx.get(db.doc('attendance_access/'+a.uid+'/classes/'+classId))]);
    if(!c.exists||c.data().active!==true)fail('invalid-argument','พบห้องเรียนที่ไม่พร้อมใช้งาน');
-   if(!manager&&!admin&&(!acl.exists||acl.data().active!==true||acl.data().canRead!==true))fail('permission-denied','ไม่มีสิทธิ์ยื่นรายชื่อของห้องนี้');
+   if(!live.readAll&&!manager&&!admin&&(!acl.exists||acl.data().active!==true||acl.data().canRead!==true))fail('permission-denied','ไม่มีสิทธิ์ยื่นรายชื่อของห้องนี้');
    return {id:classId,name:c.data().name};
   }));
   const roster=await Promise.all(form.students.map(s=>tx.get(db.doc('attendance_classes/'+s.classId+'/students/'+s.studentId))));

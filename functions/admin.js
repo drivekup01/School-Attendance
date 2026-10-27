@@ -9,7 +9,7 @@ const date=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinit
 const iso=t=>t?.toDate?dayAt(t.toDate()):'';
 async function liveAdmin(db,tx,a){
  const [p,l]=await Promise.all([tx.get(db.doc('school_users/'+a.uid)),tx.get(db.doc('attendance_teachers/'+a.uid))]);
- if(p.exists?p.data().active!==true||p.data().attendanceRole!=='admin':!l.exists||l.data().active!==true||l.data().role!=='admin'||l.data().email?.toLowerCase()!==a.email)fail('permission-denied','สิทธิ์ผู้ดูแลเปลี่ยนแล้ว กรุณาโหลดใหม่');
+ if(p.exists?p.data().active!==true||(p.data().schoolRole?p.data().schoolRole!=='admin':p.data().attendanceRole!=='admin'):!l.exists||l.data().active!==true||l.data().role!=='admin'||l.data().email?.toLowerCase()!==a.email)fail('permission-denied','สิทธิ์ผู้ดูแลเปลี่ยนแล้ว กรุณาโหลดใหม่');
 }
 async function timetable(db){
  const pointer=await db.doc('timetable_public/current').get();if(!pointer.exists)return null;

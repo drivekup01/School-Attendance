@@ -23,13 +23,14 @@
     }
     function attOwner(uid) { return attSignedIn() && request.auth.uid == uid; }
     function attMember() {
-      return attSignedIn() &&
-        get(/databases/$(database)/documents/attendance_teachers/$(request.auth.uid)).data.active == true &&
-        get(/databases/$(database)/documents/attendance_teachers/$(request.auth.uid)).data.email == request.auth.token.email;
+      return attSignedIn() && (schoolHasUser() ?
+        (schoolUnified() ? schoolUnifiedActive() : schoolActive() && schoolRole('attendanceRole') in ['teacher','admin','viewer']) :
+        (get(/databases/$(database)/documents/attendance_teachers/$(request.auth.uid)).data.active == true &&
+         get(/databases/$(database)/documents/attendance_teachers/$(request.auth.uid)).data.email == request.auth.token.email));
     }
     // Roles can only be provisioned in Console/Admin SDK, never by this browser.
     function attAdmin() {
-      return attMember() && get(/databases/$(database)/documents/attendance_teachers/$(request.auth.uid)).data.get('role','teacher') == 'admin';
+      return attMember() && (schoolHasUser() ? (schoolUnified() ? schoolRole('schoolRole') == 'admin' : schoolRole('attendanceRole') == 'admin') : get(/databases/$(database)/documents/attendance_teachers/$(request.auth.uid)).data.get('role','teacher') == 'admin');
     }
     function attString(s, min, max) { return s is string && s.size() >= min && s.size() <= max; }
     function attId(s) { return attString(s, 1, 100) && s.matches('^[A-Za-z0-9_-]+$'); }
@@ -37,16 +38,16 @@
       return get(/databases/$(database)/documents/attendance_access/$(request.auth.uid)/classes/$(classId)).data;
     }
     function attReadClass(classId) {
-      return attAdmin() || (attMember() && attAccess(classId).active == true && attAccess(classId).canRead == true);
+      return schoolUnifiedActive() || attAdmin() || (attMember() && attAccess(classId).active == true && attAccess(classId).canRead == true);
     }
     function attAssignment(id) {
       return get(/databases/$(database)/documents/attendance_assignments/$(id)).data;
     }
     function attOwnAssignment(id) {
-      return attMember() && attAssignment(id).active == true &&
+      return attMember() && (!schoolUnified() || schoolTeaches()) && attAssignment(id).active == true &&
         attAssignment(id).teacherUid == request.auth.uid && attReadClass(attAssignment(id).classId);
     }
-    function attViewAssignment(id) { return attAdmin() || attOwnAssignment(id); }
+    function attViewAssignment(id) { return schoolUnifiedActive() || attAdmin() || attOwnAssignment(id); }
     function attValidClass(d) {
       return d.keys().hasAll(['name','academicYear','term','active','createdAt','updatedAt','updatedBy']) &&
         d.keys().hasOnly(['name','academicYear','term','active','createdAt','updatedAt','updatedBy']) &&
@@ -63,13 +64,13 @@
     function attValidDirectory(d, uid) {
       return attId(uid) && d.keys().hasAll(['name','active','updatedAt','updatedBy']) &&
         d.keys().hasOnly(['name','active','updatedAt','updatedBy']) && attString(d.name,1,160) && d.active is bool &&
-        d.name == get(/databases/$(database)/documents/attendance_teachers/$(uid)).data.name &&
+        d.name == schoolAttendanceProfile(uid).name &&
         d.updatedAt == request.time && d.updatedBy == request.auth.uid;
     }
     function attValidAssignment(d) {
       return d.keys().hasAll(['teacherUid','active','kind','classId','className','subject','period','weekday','from','to','date','time','createdAt','updatedAt','updatedBy']) &&
         d.keys().hasOnly(['teacherUid','active','kind','classId','className','subject','period','weekday','from','to','date','time','createdAt','updatedAt','updatedBy']) &&
-        attId(d.teacherUid) && get(/databases/$(database)/documents/attendance_teachers/$(d.teacherUid)).data.active == true &&
+        attId(d.teacherUid) && schoolAttendanceTarget(d.teacherUid) &&
         d.active is bool && d.kind in ['morning','subject','substitute'] && attId(d.classId) &&
         d.className == get(/databases/$(database)/documents/attendance_classes/$(d.classId)).data.name &&
         attString(d.className,1,80) && attString(d.subject,1,160) && attString(d.time,0,40) &&
@@ -122,7 +123,7 @@
     match /attendance_access/{uid}/classes/{classId} {
       allow read: if attAdmin() || (attOwner(uid) && attMember());
       allow create, update: if attAdmin() && attId(uid) && attId(classId) && attValidAccess(request.resource.data) &&
-        exists(/databases/$(database)/documents/attendance_teachers/$(uid)) &&
+        schoolAttendanceTarget(uid) &&
         exists(/databases/$(database)/documents/attendance_classes/$(classId));
       allow delete: if false;
     }
@@ -133,7 +134,7 @@
       allow delete: if false;
     }
     match /attendance_classes/{classId} {
-      allow read: if attAdmin();
+      allow read: if schoolUnifiedActive() || attAdmin();
       allow create: if attAdmin() && attId(classId) && attValidClass(request.resource.data) && request.resource.data.createdAt == request.time;
       allow update: if attAdmin() && attValidClass(request.resource.data) &&
         request.resource.data.createdAt == resource.data.createdAt;
@@ -145,7 +146,7 @@
     }
     match /attendance_assignments/{aid} {
       // Queries must include teacherUid == current UID and active == true.
-      allow read: if attAdmin() || (attMember() && resource.data.teacherUid == request.auth.uid && resource.data.active == true);
+      allow read: if schoolUnifiedActive() || attAdmin() || (attMember() && resource.data.teacherUid == request.auth.uid && resource.data.active == true);
       allow create: if attAdmin() && attId(aid) && attValidAssignment(request.resource.data) && request.resource.data.createdAt == request.time;
       allow update: if attAdmin() && attValidAssignment(request.resource.data) &&
         request.resource.data.teacherUid == resource.data.teacherUid && request.resource.data.classId == resource.data.classId &&
@@ -173,7 +174,7 @@
     }
     match /attendance_behavior/{id} {
       // Teachers read their own entries only; no global score is exposed.
-      allow read: if attAdmin() || (attMember() && resource.data.teacherUid == request.auth.uid && attReadClass(resource.data.classId));
+      allow read: if schoolUnifiedActive() || attAdmin() || (attMember() && resource.data.teacherUid == request.auth.uid && attReadClass(resource.data.classId));
       // Score changes require the callable backend; positive scores require approval.
       allow create: if false;
       allow update, delete: if false;
