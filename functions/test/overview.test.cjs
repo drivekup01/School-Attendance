@@ -19,7 +19,7 @@ test('only the latest active year/term roster per room contributes to school tot
 function fakeDB(){
  const rows={attendance_classes:[{id:'room',active:true,name:'ม.1/1',academicYear:2569,term:1}],attendance_assignments:[], 'attendance_classes/room/students':[{id:'s1',number:1,code:'001',name:'Example',active:true,privateNote:'not public'}]};
  const ref=path=>({where:()=>ref(path),doc:id=>ref(path+'/'+id),collection:name=>ref(path+'/'+name),get:async()=>({docs:(rows[path]||[]).map(({id,...data})=>({id,data:()=>data}))})});
- return {collection:ref};
+ return {collection:ref,doc:path=>{assert.equal(path,'timetable_public/current');return {get:async()=>({exists:false})};}};
 }
 const timestamp={fromDate:d=>({toMillis:()=>d.getTime()})},now=new Date('2026-10-26T01:00:00Z');
 test('anonymous visitors can read today summary and filtered details without profile access',async()=>{

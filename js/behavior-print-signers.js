@@ -1,4 +1,4 @@
-import {escapeHTML as e} from './core.js?v=20261025-firebase2';
+import {escapeHTML as e} from './core.js?v=20261027-catalog1';
 const key='attendance-request-print-signers-v1';
 export function choosePrintSigners(names=[]){
  let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{}

@@ -1,4 +1,4 @@
-import {escapeHTML as e} from './core.js?v=20261025-firebase2';
+import {escapeHTML as e} from './core.js?v=20261027-catalog1';
 const fullName=t=>((t.prefix||'')+(t.first||'')+' '+(t.last||'')).trim();
 const normalized=v=>String(v||'').normalize('NFC').replace(/[\s\u200B-\u200D\uFEFF]/g,'');
 export function teacherLessons(db,teacher){

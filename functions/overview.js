@@ -1,4 +1,5 @@
 'use strict';
+const {timetable,selectClasses}=require('./class-catalog');
 const STATUSES=['present','late','absent','leave'];
 const fail=(code,message)=>{throw Object.assign(new Error(message),{code});};
 const dayAt=now=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
@@ -30,8 +31,8 @@ async function service(db,Timestamp,request,now=new Date()){
  if(!['summary','details'].includes(method)||Object.keys(input).some(k=>!['method','classId','status'].includes(k)))fail('invalid-argument','ไม่รองรับคำขอนี้');
  if(method==='details'&&(typeof input.classId!=='string'||!input.classId.match(/^[A-Za-z0-9_-]{1,100}$/)||!STATUSES.concat('pending','all').includes(input.status)))fail('invalid-argument','เลือกห้องและสถานะให้ถูกต้อง');
  const date=dayAt(now),key=date.replaceAll('-',''),day=Timestamp.fromDate(new Date(date+'T00:00:00+07:00'));
- const [classSnap,assignSnap]=await Promise.all([db.collection('attendance_classes').where('active','==',true).get(),db.collection('attendance_assignments').where('kind','==','morning').get()]);
- const classes=currentClasses(classSnap.docs.map(d=>({id:d.id,...d.data()})),Number(date.slice(0,4))+543);
+ const [classSnap,assignSnap,native]=await Promise.all([db.collection('attendance_classes').where('active','==',true).get(),db.collection('attendance_assignments').where('kind','==','morning').get(),timetable(db)]);
+ const rawClasses=classSnap.docs.map(d=>({id:d.id,...d.data()})),classes=selectClasses(rawClasses,native)||currentClasses(rawClasses,Number(date.slice(0,4))+543);
  const rosters=new Map(await Promise.all(classes.map(async c=>[c.id,(await db.collection('attendance_classes').doc(c.id).collection('students').get()).docs.map(d=>({id:d.id,...d.data()}))])));
  const weekday=new Date(date+'T12:00:00+07:00').getUTCDay(),classIds=new Set(classes.map(c=>c.id));
  const assignments=assignSnap.docs.map(d=>({id:d.id,...d.data()})).filter(a=>classIds.has(a.classId)&&epoch(a.from)<=epoch(day)&&epoch(a.to)>=epoch(day));

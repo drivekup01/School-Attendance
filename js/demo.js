@@ -1,4 +1,4 @@
-import {today,weekday,validateMarks,validateRange} from './core.js?v=20261025-firebase2';
+import {today,weekday,validateMarks,validateRange} from './core.js?v=20261027-catalog1';
 const key='school-attendance-demo-v1';
 // ข้อมูลสมมติเท่านั้น โหมดจริงจะไม่อ่านข้อมูลจากไฟล์นี้
 export const demoUser={uid:'demo-teacher',name:'ครูตัวอย่าง',email:'demo@example.invalid',active:true};
