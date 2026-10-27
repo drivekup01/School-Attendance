@@ -22,7 +22,7 @@ async function service(db,T,request,now=new Date()){
   const teachers=profiles.filter(p=>p.active===true&&['teacher','admin'].includes(p.attendanceRole)).map(p=>({id:p.id,name:p.name||'ไม่ระบุชื่อ',teacherId:p.teacherId||'',active:true}));
   const classes=await Promise.all(rooms.docs.map(async s=>({id:s.id,...s.data(),studentCount:(await s.ref.collection('students').get()).docs.filter(x=>x.data().active!==false).length})));
   const assignments=jobs.docs.map(s=>({id:s.id,...s.data(),from:iso(s.data().from),to:iso(s.data().to),date:iso(s.data().date)}));
-  const selected=selectClasses(classes,native)||classes,ids=new Set(selected.map(c=>c.id));return {teachers,classes:selected,assignments:assignments.filter(a=>ids.has(a.classId)),archivedClasses:classes.filter(c=>!ids.has(c.id)),archivedAssignments:assignments.filter(a=>!ids.has(a.classId)),timetable:native};
+  let selected,catalogError='';try{selected=selectClasses(classes,native)||classes;}catch(error){if(error.code!=='failed-precondition')throw error;catalogError=error.message;selected=classes.filter(c=>c.academicYear===Number(native.school.year)&&c.term===Number(native.school.semester));}const ids=new Set(selected.map(c=>c.id));return {teachers,classes:selected,assignments:assignments.filter(a=>ids.has(a.classId)),archivedClasses:classes.filter(c=>!ids.has(c.id)),archivedAssignments:assignments.filter(a=>!ids.has(a.classId)),timetable:native,catalogError};
  }
  if(input.method==='students'){
   if(!id(input.classId))fail('invalid-argument','เลือกห้อง');const snaps=await db.collection('attendance_classes').doc(input.classId).collection('students').get();return {students:snaps.docs.map(s=>({id:s.id,...s.data()})).sort((x,y)=>x.number-y.number)};
