@@ -1,5 +1,5 @@
 import {readRoster} from './roster-import.js?v=20261028-import1';
-import {escapeHTML as e} from './core.js?v=20261027-catalog1';
+import {escapeHTML as e} from './core.js?v=20261028-exchange1';
 export function mountRosterImport(host,{data,call,reload,isDemo}){
  const section=document.createElement('div');host.prepend(section);
  section.innerHTML='<div class="panel-heading"><div><h3>อัปเดตรายชื่อนักเรียนจาก Excel</h3><p class="fine-print">แทนที่รายชื่อปัจจุบันครบ 18 ห้อง · อ่านเฉพาะชีต 1.1–6.3 · เก็บประวัติเช็กชื่อและคะแนนเดิม</p></div><button type="button" class="button secondary" data-import>นำเข้ารายชื่อจาก Excel</button></div><input type="file" accept=".xls,.xlsx" data-file hidden><div data-preview aria-live="polite"></div>';

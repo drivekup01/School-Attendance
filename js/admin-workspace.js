@@ -1,8 +1,8 @@
 import {mountRosterImport} from './admin-roster-import.js?v=20261028-import1';
-import {teacherLessons,teacherTimetableHTML} from './admin-timetable.js?v=20261027-catalog1';
-import {mergeStaff} from './admin-staff.js?v=20261027-catalog1';
-import {escapeHTML as e,today} from './core.js?v=20261027-catalog1';
-import {notify} from './shell.js?v=20261027-catalog1';
+import {teacherLessons,teacherTimetableHTML} from './admin-timetable.js?v=20261028-exchange1';
+import {mergeStaff} from './admin-staff.js?v=20261028-exchange1';
+import {escapeHTML as e,today} from './core.js?v=20261028-exchange1';
+import {notify} from './shell.js?v=20261028-exchange1';
 const weekdays=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const types={morning:'ห้องประจำชั้น / เข้าแถว',subject:'รายวิชา',substitute:'สอนแทน'};
 const field=(name,label,type='text',options=[])=>({name,label,type,options});
@@ -13,10 +13,10 @@ function dialog(title,fields,initial={}){
  document.body.append(el);el.showModal();return new Promise(resolve=>{const close=value=>{el.close();el.remove();resolve(value);};form.onsubmit=ev=>{ev.preventDefault();const value={...initial};for(const f of fields)value[f.name]=f.type==='checkbox'?form.elements[f.name].checked:f.type==='number'?Number(form.elements[f.name].value):form.elements[f.name].value.trim();close(value);};el.querySelector('[data-cancel]').onclick=()=>close(null);el.oncancel=ev=>{ev.preventDefault();close(null);};});
 }
 export async function adminWorkspace(host,{isDemo=false}={}){
- const call=async data=>isDemo?(await import('./admin-workspace-demo.js?v=20261027-catalog1')).adminCall(data):(await import('./school-auth.js?v=20261027-catalog1')).call('attendanceAdmin',data);
+ const call=async data=>isDemo?(await import('./admin-workspace-demo.js?v=20261028-exchange1')).adminCall(data):(await import('./school-auth.js?v=20261028-exchange1')).call('attendanceAdmin',data);
  let data,chosen='',search='',nativeTeacher='',students=[],studentClass='';
  host.innerHTML='<section class="panel"><div class="panel-heading"><div><h2>ตรวจสอบครูและข้อมูลที่มอบหมาย</h2><p class="fine-print">ดูข้อมูลครูทุกคนจากบัญชีผู้ดูแล ไม่ต้องใช้รหัสผ่านครู</p></div><button class="button ghost" data-reload>โหลดล่าสุด</button></div><div data-admin-body></div></section><section class="panel admin-assignment" data-admin-edit></section>';
- async function load(){host.querySelector('[data-reload]').disabled=true;try{const results=await Promise.allSettled([call({method:'list'}),isDemo?Promise.resolve(null):(await import('./school-auth.js?v=20261027-catalog1')).call('schoolIdentity',{method:'attendanceCatalog'})]);if(results[0].status==='rejected')throw results[0].reason;const listed=results[0].value,catalog=results[1].status==='fulfilled'?results[1].value:null;data={...listed,catalogError:listed.catalogError||(results[1].status==='rejected'?results[1].reason.message:''),canonicalAssignments:catalog?.assignments||listed.assignments};render();renderEdit();}catch(error){notify(error.message,true);host.querySelector('[data-admin-body]').textContent=error.message;}finally{host.querySelector('[data-reload]').disabled=false;}}
+ async function load(){host.querySelector('[data-reload]').disabled=true;try{const results=await Promise.allSettled([call({method:'list'}),isDemo?Promise.resolve(null):(await import('./school-auth.js?v=20261028-exchange1')).call('schoolIdentity',{method:'attendanceCatalog'})]);if(results[0].status==='rejected')throw results[0].reason;const listed=results[0].value,catalog=results[1].status==='fulfilled'?results[1].value:null;data={...listed,catalogError:listed.catalogError||(results[1].status==='rejected'?results[1].reason.message:''),canonicalAssignments:catalog?.assignments||listed.assignments};render();renderEdit();}catch(error){notify(error.message,true);host.querySelector('[data-admin-body]').textContent=error.message;}finally{host.querySelector('[data-reload]').disabled=false;}}
  function nativeRows(t){return teacherLessons(data.timetable,t); }
  function homerooms(t){return (data.timetable?.rooms||[]).filter(r=>[r.homeroom,r.homeroom2,r.homeroom3].includes(t.id)).map(r=>r.label||`${r.grade}/${r.room}`);}
  function teachers(){return mergeStaff(data.timetable?.teachers||[],data.teachers);}

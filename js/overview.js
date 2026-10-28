@@ -1,4 +1,4 @@
-import {escapeHTML as e,statuses,thaiDate,today,assignmentsOn} from './core.js?v=20261027-catalog1';
+import {escapeHTML as e,statuses,thaiDate,today,assignmentsOn} from './core.js?v=20261028-exchange1';
 const labels={all:'ทั้งหมด',...statuses,pending:'ยังไม่เช็ค'};
 const colors={present:'teal',late:'gold',absent:'purple',leave:'blue'};
 export async function renderOverview(host,{isDemo,provider,assignments}){
@@ -7,7 +7,7 @@ export async function renderOverview(host,{isDemo,provider,assignments}){
  const body=host.querySelector('[data-overview-body]');
  let demoDetails=new Map();
  async function call(input){
-  if(!isDemo)return (await import('./school-auth.js?v=20261027-catalog1')).call('attendanceOverview',input);
+  if(!isDemo)return (await import('./school-auth.js?v=20261028-exchange1')).call('attendanceOverview',input);
   if(input.method==='details')return {students:(demoDetails.get(input.classId)||[]).filter(s=>input.status==='all'||s.status===input.status)};
   const rooms=[],totals={present:0,late:0,absent:0,leave:0,pending:0,total:0};demoDetails=new Map();
   const classes=[...new Map(assignments.map(a=>[a.classId,a])).values()];

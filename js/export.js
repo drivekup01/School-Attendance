@@ -1,8 +1,8 @@
-import {statuses,toCSV,download} from './core.js?v=20261027-catalog1';
+import {statuses,toCSV,download} from './core.js?v=20261028-exchange1';
 export function reportRows(records,kind){
  if(kind==='behavior')return [['วันที่','ห้อง','รหัสนักเรียน','ชื่อ – สกุล','เพิ่ม / ลดคะแนน','เหตุผล','ครูผู้บันทึก'],...records.map(r=>[r.date,r.className,r.studentCode,r.studentName,r.delta,r.reason,r.teacherUid])];
  const rows=[['วันที่','ประเภท','ห้อง','วิชา / กิจกรรม','คาบ','รหัสนักเรียน','เลขที่','ชื่อ – สกุล','สถานะ','หมายเหตุ']];
- for(const session of records)for(const student of session.students){const m=session.marks[student.id];rows.push([session.date,session.kind==='morning'?'เข้าแถว':session.kind==='substitute'?'สอนแทน':'รายวิชา',session.className,session.subject,session.period||'',student.code,student.number,student.name,statuses[m?.status]||'ยังไม่เช็ค',m?.note||'']);}
+ for(const session of records)for(const student of session.students){const m=session.marks[student.id];rows.push([session.date,session.exchangeId?'แลกคาบ':session.kind==='morning'?'เข้าแถว':session.kind==='substitute'?'สอนแทน':'รายวิชา',session.className,session.subject,session.period||'',student.code,student.number,student.name,statuses[m?.status]||'ยังไม่เช็ค',m?.note||'']);}
  return rows;
 }
 export function csvExport(rows,name){download(new Blob([toCSV(rows)],{type:'text/csv;charset=utf-8;'}),name+'.csv');}

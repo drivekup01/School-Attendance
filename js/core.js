@@ -12,7 +12,7 @@ export function validDate(value) {
 export function thaiDate(value = today()) {return validDate(value) ? new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Bangkok'}).format(new Date(value+'T00:00:00+07:00')) : 'วันที่ไม่ถูกต้อง';}
 export function weekday(value) {return new Date(value+'T00:00:00+07:00').getUTCDay() === 6 ? 0 : new Date(value+'T00:00:00+07:00').getUTCDay()+1;}
 export function assignmentsOn(assignments, date, kind) {
-  return assignments.filter(a => (!kind || (kind==='morning' ? a.kind==='morning' : a.kind!=='morning')) && date>=a.from && date<=a.to && (a.kind==='substitute' ? a.date===date : a.kind==='morning' || a.weekday===weekday(date))).sort((a,b)=>(a.period||0)-(b.period||0));
+  return assignments.filter(a => !(a.excludedDates||[]).includes(date) && (!kind || (kind==='morning' ? a.kind==='morning' : a.kind!=='morning')) && date>=a.from && date<=a.to && (a.kind==='substitute' ? a.date===date : a.kind==='morning' || a.weekday===weekday(date))).sort((a,b)=>(a.period||0)-(b.period||0));
 }
 export function counts(students, marks) {
   const out = {present:0,late:0,absent:0,leave:0,unmarked:0,total:students.length};
