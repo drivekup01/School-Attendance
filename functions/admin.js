@@ -12,9 +12,10 @@ async function liveAdmin(db,tx,a){
  if(p.exists?p.data().active!==true||(p.data().schoolRole?p.data().schoolRole!=='admin':p.data().attendanceRole!=='admin'):!l.exists||l.data().active!==true||l.data().role!=='admin'||l.data().email?.toLowerCase()!==a.email)fail('permission-denied','สิทธิ์ผู้ดูแลเปลี่ยนแล้ว กรุณาโหลดใหม่');
 }
 const {timetable,selectClasses}=require('./class-catalog');
+const {validateRoster,replaceRoster}=require('./roster-import');
 async function service(db,T,request,now=new Date()){
  const a=await actor(db,request);if(!a.admin)fail('permission-denied','ใช้ได้เฉพาะผู้ดูแลระบบเช็คชื่อ');
- const input=request.data||{},allowed={list:['method'],students:['method','classId'],saveClass:['method','item'],saveStudent:['method','classId','item'],saveAssignment:['method','item'],saveMarks:['method','assignmentId','date','marks','revisions']};
+ const input=request.data||{},allowed={replaceRoster:['method','classId','academicYear','term','label','students'],list:['method'],students:['method','classId'],saveClass:['method','item'],saveStudent:['method','classId','item'],saveAssignment:['method','item'],saveMarks:['method','assignmentId','date','marks','revisions']};
  if(!Object.hasOwn(allowed,input.method)||Object.keys(input).some(k=>!allowed[input.method].includes(k)))fail('invalid-argument','ข้อมูลคำขอไม่ถูกต้อง');
  if(input.method==='list'){
   const [p,l,rooms,jobs,native]=await Promise.all([db.collection('school_users').get(),db.collection('attendance_teachers').get(),db.collection('attendance_classes').get(),db.collection('attendance_assignments').get(),timetable(db)]);
@@ -28,6 +29,7 @@ async function service(db,T,request,now=new Date()){
   if(!id(input.classId))fail('invalid-argument','เลือกห้อง');const snaps=await db.collection('attendance_classes').doc(input.classId).collection('students').get();return {students:snaps.docs.map(s=>({id:s.id,...s.data()})).sort((x,y)=>x.number-y.number)};
  }
  const stamp=T.fromDate(now),item=input.item||{};
+ if(input.method==='replaceRoster'){validateRoster(input);return db.runTransaction(async tx=>{await liveAdmin(db,tx,a);return replaceRoster(db,tx,input,a,stamp);});}
  if(input.method==='saveClass'){
   if(Object.keys(item).some(k=>!['id','name','academicYear','term','active'].includes(k))||!id(item.id)||!text(item.name,80)||!Number.isInteger(item.academicYear)||item.academicYear<2500||item.academicYear>2700||![1,2].includes(item.term)||typeof item.active!=='boolean')fail('invalid-argument','ข้อมูลห้องไม่ถูกต้อง');
  }else if(input.method==='saveStudent'){

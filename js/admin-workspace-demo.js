@@ -5,6 +5,12 @@ const state=saved||{teachers:[{id:'demo-teacher',name:'ครูตัวอย�
 export async function adminCall(input){
  if(input.method==='list')return structuredClone(state);
  if(input.method==='students')return {students:structuredClone(state.students[input.classId]||[])};
+ if(input.method==='replaceRoster'){
+  const room=state.classes.find(c=>c.id===input.classId);if(!room)throw Error('ไม่พบห้องทดลอง');
+  const prior=state.students[input.classId]||[],incoming=new Set(input.students.map(s=>s.code));
+  state.students[input.classId]=[...input.students.map(s=>({...s,id:prior.find(p=>p.code===s.code)?.id||crypto.randomUUID(),active:true})),...prior.filter(s=>!incoming.has(s.code)).map(s=>({...s,active:false}))];room.studentCount=input.students.length;
+  sessionStorage.setItem(key,JSON.stringify(state));return {ok:true,count:input.students.length};
+ }
  const item=input.item;if(input.method==='saveClass'){const index=state.classes.findIndex(c=>c.id===item.id);if(index<0)state.classes.push({...item,studentCount:0});else state.classes[index]={...state.classes[index],...item};}
  if(input.method==='saveStudent'){const list=state.students[input.classId]||=[];const index=list.findIndex(s=>s.id===item.id);if(index<0)list.push(item);else list[index]=item;state.classes.find(c=>c.id===input.classId).studentCount=list.filter(s=>s.active).length;}
  if(input.method==='saveAssignment'){const value={...item,id:item.id||crypto.randomUUID(),className:state.classes.find(c=>c.id===item.classId).name};const index=state.assignments.findIndex(a=>a.id===value.id);if(index<0)state.assignments.push(value);else state.assignments[index]=value;}
