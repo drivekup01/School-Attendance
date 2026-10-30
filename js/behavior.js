@@ -1,4 +1,4 @@
-import {shell,heading,empty,notify,friendlyError,setIdentity} from './shell.js?v=20261028-exchange1';
+import {shell,heading,empty,notify,friendlyError,setIdentity} from './shell.js?v=20261030-unified1';
 import {today,thaiDate,escapeHTML as e} from './core.js?v=20261028-exchange1';
 import {isDemo} from './session.js?v=20261028-exchange1';
 import {icon} from './icons.js?v=20261028-exchange1';

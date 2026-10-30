@@ -1,0 +1,9 @@
+{
+  "version": "20261030-unified1",
+  "bundles": {
+    "styles/attendance-base.css": [
+      "css/theme.css",
+      "css/sidebar.css"
+    ]
+  }
+}

@@ -1,4 +1,4 @@
-import {boot,heading,empty,notify} from './shell.js?v=20261028-exchange1';
+import {boot,heading,empty,notify} from './shell.js?v=20261030-unified1';
 import {today,validateRange,escapeHTML as e} from './core.js?v=20261028-exchange1';
 import {icon} from './icons.js?v=20261028-exchange1';
 import {isDemo} from './session.js?v=20261028-exchange1';

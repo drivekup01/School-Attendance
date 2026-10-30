@@ -1,12 +1,12 @@
 /* School-Budget sidebar appearance, with attendance navigation and permissions. */
-.sidebar{width:240px;padding:28px 18px;background:linear-gradient(160deg,#291743,#472468);font:14px Tahoma,system-ui,sans-serif;overflow:auto}
+.sidebar{width:240px;padding:28px 18px;background:linear-gradient(160deg,#291743,#472468);font:14px 'IBM Plex Sans Thai',Tahoma,sans-serif;overflow:auto}
 .sidebar .brand{gap:14px;font-size:15px;font-weight:bold;line-height:1.6}
 .sidebar .brand img{width:100px;height:100px;object-fit:contain;animation:school-logo-coin 7s infinite;transform-origin:center}
-.sidebar .brand small{display:block;font-size:11px;font-weight:normal;color:#c8b9df;margin-top:8px}
+.sidebar .brand small{display:block;font-size:13px;font-weight:normal;color:#c8b9df;margin-top:8px}
 .sidebar-clock-bar{margin:20px 0 0;flex-shrink:0}
-.sidebar-clock{display:flex;flex-direction:column;align-items:center;gap:8px;padding:13px 8px;border:1px solid #ffffff24;border-radius:14px;background:#ffffff09;color:#f1e9fa;font:12px/1.8 Tahoma,system-ui,sans-serif;text-align:center}
+.sidebar-clock{display:flex;flex-direction:column;align-items:center;gap:8px;padding:13px 8px;border:1px solid #ffffff24;border-radius:14px;background:#ffffff09;color:#f1e9fa;font:12px/1.8 'IBM Plex Sans Thai',Tahoma,sans-serif;text-align:center}
 .sidebar-clock-date{display:block;font-weight:500}
-.sidebar-clock-time{display:block;color:#cbb7dd;font-size:11px;font-variant-numeric:tabular-nums}
+.sidebar-clock-time{display:block;color:#cbb7dd;font-size:13px;font-variant-numeric:tabular-nums}
 .sidebar nav{gap:10px;margin:22px 0 0}
 .sidebar nav a{gap:6px;padding:15px 12px;border-radius:12px;color:#ded3ed;font-size:13px;line-height:1.5}
 .sidebar nav a .icon{width:13px;height:13px}
@@ -16,11 +16,11 @@
 .sidebar .avatar{width:46px;height:46px;border-radius:14px;flex-shrink:0}
 .sidebar .avatar .icon{width:27px;height:27px}
 .sidebar .identity strong{font-size:16px;overflow-wrap:anywhere}
-.sidebar .identity small{font-size:11px;color:#c8b9df}
-.sidebar .sidebar-button{display:block;width:auto;margin:10px 0 0 59px;padding:9px 14px;border:1px solid #ffffff28;border-radius:9px;background:#ffffff0c;color:#e9daf4;font:12px Tahoma,system-ui,sans-serif}
+.sidebar .identity small{font-size:13px;color:#c8b9df}
+.sidebar .sidebar-button{display:block;width:auto;margin:10px 0 0 59px;padding:9px 14px;border:1px solid #ffffff28;border-radius:9px;background:#ffffff0c;color:#e9daf4;font:12px 'IBM Plex Sans Thai',Tahoma,sans-serif}
 .workspace{margin-left:240px}
-@media(max-width:1150px) and (min-width:741px){.sidebar{width:200px}.workspace{margin-left:200px}}
-@media(max-width:740px){.workspace{margin-left:0}}
+@media(max-width:1150px) and (min-width:761px){.sidebar{width:200px}.workspace{margin-left:200px}}
+@media(max-width:760px){.workspace{margin-left:0}}
 @keyframes school-logo-coin{0%{transform:perspective(650px) rotateY(0deg);animation-timing-function:cubic-bezier(.15,.65,.2,1)}57.142857%{transform:perspective(650px) rotateY(1080deg);animation-timing-function:linear}100%{transform:perspective(650px) rotateY(1080deg)}}
 @media(prefers-reduced-motion:reduce){.sidebar .brand img{animation:none;transform:none}}
 @media print{.sidebar .brand img{animation:none;transform:none}.sidebar-clock-bar{display:none}}
