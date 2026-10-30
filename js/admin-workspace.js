@@ -2,7 +2,7 @@ import {mountRosterImport} from './admin-roster-import.js?v=20261028-import1';
 import {teacherLessons,teacherTimetableHTML} from './admin-timetable.js?v=20261028-exchange1';
 import {mergeStaff} from './admin-staff.js?v=20261028-exchange1';
 import {escapeHTML as e,today} from './core.js?v=20261028-exchange1';
-import {notify} from './shell.js?v=20261028-exchange1';
+import {notify} from './shell.js?v=20261030-unified1';
 const weekdays=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const types={morning:'ห้องประจำชั้น / เข้าแถว',subject:'รายวิชา',substitute:'สอนแทน'};
 const field=(name,label,type='text',options=[])=>({name,label,type,options});

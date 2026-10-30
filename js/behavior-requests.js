@@ -1,5 +1,5 @@
 import {escapeHTML as e,today,thaiDate} from './core.js?v=20261028-exchange1';
-import {heading,notify,empty} from './shell.js?v=20261028-exchange1';
+import {heading,notify,empty} from './shell.js?v=20261030-unified1';
 const labels={pending:'รออนุมัติ',approved:'อนุมัติแล้ว · รอเพิ่มคะแนน',awarded:'อนุมัติแล้ว · เพิ่มคะแนนอัตโนมัติแล้ว'};
 const evidence={certificate:'สำเนาเกียรติบัตร',participation:'ใบรับรองการเข้าร่วมกิจกรรม',photo:'ภาพถ่ายการทำกิจกรรม',other:'อื่น ๆ'};
 const TYPES=['image/jpeg','image/png','image/webp'];

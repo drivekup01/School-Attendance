@@ -1,5 +1,5 @@
 import {displayDayFirst} from './date-input.js?v=20261028-exchange1';
-import {heading,empty,notify} from './shell.js?v=20261028-exchange1';
+import {heading,empty,notify} from './shell.js?v=20261030-unified1';
 import {today,thaiDate,assignmentsOn,counts,statuses,escapeHTML as e,validateMarks,validDate} from './core.js?v=20261028-exchange1';
 import {icon} from './icons.js?v=20261028-exchange1';
 import {isDemo} from './session.js?v=20261028-exchange1';
