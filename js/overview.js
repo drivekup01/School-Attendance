@@ -1,13 +1,13 @@
-import {escapeHTML as e,statuses,thaiDate,today,assignmentsOn} from './core.js?v=20261028-exchange1';
+import {escapeHTML as e,statuses,thaiDate,today,assignmentsOn} from './core.js?v=20261031-student1';
 const labels={all:'ทั้งหมด',...statuses,pending:'ยังไม่เช็ค'};
-const colors={present:'teal',late:'gold',absent:'purple',leave:'blue'};
+const colors={present:'teal',late:'gold',absent:'red',leave:'blue'};
 export async function renderOverview(host,{isDemo,provider,assignments}){
  let summary,selected='all',roomId='',requestId=0;
  host.innerHTML=`<section class="panel morning-overview"><div class="panel-heading"><div><h2>สรุปเข้าแถวเช้าวันนี้</h2><small>${e(thaiDate(today()))} · ใช้ผลเช็คชื่อตอนเช้าเท่านั้น</small></div><div class="overview-controls"><label class="field"><span>ห้องเรียน</span><select data-overview-class aria-label="เลือกห้องเรียนสำหรับสรุปเข้าแถว"><option value="">ทุกห้องเรียน</option></select></label><button class="button ghost" data-overview-refresh>ค้นหา</button></div></div><div data-overview-body></div></section>`;
  const body=host.querySelector('[data-overview-body]');
  let demoDetails=new Map();
  async function call(input){
-  if(!isDemo)return (await import('./school-auth.js?v=20261028-exchange1')).call('attendanceOverview',input);
+  if(!isDemo)return (await import('./school-auth.js?v=20261031-student1')).call('attendanceOverview',input);
   if(input.method==='details')return {students:(demoDetails.get(input.classId)||[]).filter(s=>input.status==='all'||s.status===input.status)};
   const rooms=[],totals={present:0,late:0,absent:0,leave:0,pending:0,total:0};demoDetails=new Map();
   const classes=[...new Map(assignments.map(a=>[a.classId,a])).values()];

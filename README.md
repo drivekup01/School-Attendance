@@ -39,7 +39,7 @@ node scripts/serve.mjs
 | ความประพฤติ | behavior.html | js/behavior.js | css/behavior.css |
 | รายงาน | reports.html | js/reports.js + js/export.js | css/reports.css |
 
-ธีม: css/theme.css · เมนู: js/shell.js · ตั้งค่า: js/settings.js · Firestore: js/store.js
+ธีม: css/student-workspace.css · ไฟล์รวม: styles/student-workspace.css · เมนู: js/shell.js · ตั้งค่า: js/settings.js · Firestore: js/store.js
 
 ## ฐานข้อมูลและสิทธิ์
 

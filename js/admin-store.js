@@ -1,6 +1,6 @@
-import {firebase} from './firebase-client.js?v=20261028-exchange1';
-import {settings} from './settings.js?v=20261028-exchange1';
-import {validDate,escapeHTML,today} from './core.js?v=20261028-exchange1';
+import {firebase} from './firebase-client.js?v=20261031-student1';
+import {settings} from './settings.js?v=20261031-student1';
+import {validDate,escapeHTML,today} from './core.js?v=20261031-student1';
 const idOK=id=>/^[A-Za-z0-9_-]{1,100}$/.test(id);
 const text=(s,max)=>typeof s==='string'&&s.trim().length>0&&s.length<=max;
 const iso=ts=>ts?.toDate?today(ts.toDate()):'';

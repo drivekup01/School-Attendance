@@ -1,5 +1,5 @@
-import {escapeHTML as e,today,thaiDate} from './core.js?v=20261028-exchange1';
-import {heading,notify,empty} from './shell.js?v=20261030-unified1';
+import {escapeHTML as e,today,thaiDate} from './core.js?v=20261031-student1';
+import {heading,notify,empty} from './shell.js?v=20261031-student1';
 const labels={pending:'รออนุมัติ',approved:'อนุมัติแล้ว · รอเพิ่มคะแนน',awarded:'อนุมัติแล้ว · เพิ่มคะแนนอัตโนมัติแล้ว'};
 const evidence={certificate:'สำเนาเกียรติบัตร',participation:'ใบรับรองการเข้าร่วมกิจกรรม',photo:'ภาพถ่ายการทำกิจกรรม',other:'อื่น ๆ'};
 const TYPES=['image/jpeg','image/png','image/webp'];
@@ -10,7 +10,7 @@ export async function mountRequests({host,setup,isDemo,behaviorCall,refreshScore
  let initialized=false,photos=[],rows=[],roster=[],saving=false,requestKey=null,detail=null,detailPhotos=[],detailsVersion=0,editing=null;
  const demoKey='school-behavior-requests-demo-v1';
  async function api(input){
-  if(!isDemo)return (await import('./school-auth.js?v=20261028-exchange1')).call('attendanceBehaviorRequests',input);
+  if(!isDemo)return (await import('./school-auth.js?v=20261031-student1')).call('attendanceBehaviorRequests',input);
   if(input.method==='printOptions')return {names:['ครูตัวอย่าง','นางสาวอรลักษณ์ ธูปบูชากรณ์','นายเรวัฒน์ พรหมสะโร']};
   const saved=JSON.parse(sessionStorage.getItem(demoKey)||'[]');
   if(input.method==='list')return {requests:saved.filter(d=>d.status!=='deleted').map(d=>({...d,count:d.students.length}))};
@@ -21,7 +21,7 @@ export async function mountRequests({host,setup,isDemo,behaviorCall,refreshScore
   if(['update','delete'].includes(input.method)){
    if(input.method==='delete'&&!(setup.canDeleteRequests??setup.canBulk))throw Error('ไม่มีสิทธิ์ลบคำร้อง');
    if((d.revision||0)!==input.revision)throw Error('คำร้องมีการเปลี่ยนแปลง กรุณาโหลดล่าสุด');
-   const {demo}=await import('./demo.js?v=20261028-exchange1');
+   const {demo}=await import('./demo.js?v=20261031-student1');
    const old=structuredClone(d),revision=(d.revision||0)+1;
    const keepAward=input.method==='update'&&(setup.canApproveRequests??setup.canBulk)&&d.status==='awarded';
    if(d.status==='awarded')await demo.reverseRequest(d,revision);
@@ -33,7 +33,7 @@ export async function mountRequests({host,setup,isDemo,behaviorCall,refreshScore
   if(!(setup.canApproveRequests??setup.canBulk))throw Error('บัญชีนี้ไม่มีสิทธิ์อนุมัติคำร้อง');
   if(['approve','award'].includes(input.method)&&d.status!=='awarded'){
    if(input.method==='award'&&d.status!=='approved'||!['pending','approved'].includes(d.status))throw Error('ต้องอนุมัติก่อนเพิ่มคะแนน');
-   const {demo}=await import('./demo.js?v=20261028-exchange1');
+   const {demo}=await import('./demo.js?v=20261031-student1');
    await demo.awardRequest(d);
    if(d.status==='pending'){d.approvedName='ครูตัวอย่าง';d.approvedAt=new Date().toISOString();d.approvalNote=input.note;}
    d.status='awarded';d.revision=(d.revision||0)+1;d.awardedName='ครูตัวอย่าง';d.awardedAt=new Date().toISOString();
@@ -90,7 +90,7 @@ export async function mountRequests({host,setup,isDemo,behaviorCall,refreshScore
   const dialog=document.createElement('dialog');dialog.className='behavior-confirm';dialog.innerHTML='<h2>ยืนยันดำเนินการคำร้อง</h2><p></p><div class="behavior-modes"><button class="button" data-yes>ยืนยัน</button><button class="button secondary" data-no>ยกเลิก</button></div>';dialog.querySelector('p').textContent=message;document.body.append(dialog);dialog.showModal();const yes=await new Promise(resolve=>{dialog.querySelector('[data-yes]').onclick=()=>resolve(true);dialog.querySelector('[data-no]').onclick=()=>resolve(false);dialog.oncancel=ev=>{ev.preventDefault();resolve(false);};});dialog.close();dialog.remove();if(!yes)return;
   const button=panel.querySelector(method==='approve'?'#requestApprove':'#requestAward');button.disabled=true;try{const input={method,requestId:id};if(method==='approve')input.note=panel.querySelector('#requestApprovalNote').value;await api(input);await refreshScores();notify('อนุมัติแล้ว ระบบเพิ่มคะแนนตามคำร้องเรียบร้อยแล้ว');await Promise.all([loadList(),showDetail(id)]);}catch(error){notify(error.message,true);button.disabled=false;}
  }
- async function printRequest(){const button=panel.querySelector('#requestPrint');button.disabled=true;try{let names=[];try{names=(await api({method:'printOptions'})).names;}catch{notify('โหลดรายชื่อไม่สำเร็จ สามารถเลือกชื่อเดิมหรือระบุชื่ออื่นได้',true);}const signers=await (await import('./behavior-print-signers.js?v=20261028-exchange1')).choosePrintSigners(names);if(signers)await (await import('./behavior-print.js?v=20261028-exchange1')).printBehaviorRequest(detail,detailPhotos,signers);}catch(error){notify(error.message,true);}finally{button.disabled=false;}}
+ async function printRequest(){const button=panel.querySelector('#requestPrint');button.disabled=true;try{let names=[];try{names=(await api({method:'printOptions'})).names;}catch{notify('โหลดรายชื่อไม่สำเร็จ สามารถเลือกชื่อเดิมหรือระบุชื่ออื่นได้',true);}const signers=await (await import('./behavior-print-signers.js?v=20261031-student1')).choosePrintSigners(names);if(signers)await (await import('./behavior-print.js?v=20261031-student1')).printBehaviorRequest(detail,detailPhotos,signers);}catch(error){notify(error.message,true);}finally{button.disabled=false;}}
 
  if(new URLSearchParams(location.search).get('tab')==='request')await switchTab('request');
 }

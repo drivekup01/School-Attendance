@@ -1,4 +1,4 @@
-import {assignmentsOn,escapeHTML as e} from './core.js?v=20261028-exchange1';
+import {assignmentsOn,escapeHTML as e} from './core.js?v=20261031-student1';
 export function demoHome(assignments,user,date){
  const school=['admin','viewer'].includes(user.role),owned=assignments.filter(a=>a.active!==false&&(school||a.teacherUid===user.uid)),groups=new Map();
  for(const a of assignmentsOn(owned,date,'subject')){const key=JSON.stringify([a.teacherUid,a.kind,a.period,a.sourceTeacherId||'']);if(!groups.has(key))groups.set(key,{teacherName:a.teacherName||user.name,period:a.period,time:a.time,kind:a.kind,cells:[]});groups.get(key).cells.push({...a,assignmentId:a.id});}
