@@ -8,4 +8,4 @@ Edit css/student-workspace.css for the shell and source component CSS for page l
 
 Run node scripts/pages.mjs to regenerate the HTML from scripts/student-page.tpl. All pages retain Apple installation metadata. js/shell.js owns the responsive drawer. Within an iframe, student-embedded hides its own shell so the Portal supplies the only menu and header. Printed behavior forms remain in js/behavior-print.js with their original document styles.
 
-Portal/scripts/sync-attendance.py mirrors static UI including styles/, and prunes removed CSS/JS files only. It never prunes records or images. Publish this source first, then publish Portal's mirrored UI and navigation cache versions.
+Portal/scripts/sync-attendance.py mirrors static UI including styles/, and prunes removed CSS files only. Portal helper modules, records and images are preserved. Publish this source first, then publish Portal's mirrored UI and navigation cache versions.
