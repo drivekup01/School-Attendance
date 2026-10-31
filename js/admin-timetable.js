@@ -1,4 +1,4 @@
-import {escapeHTML as e} from './core.js?v=20261028-exchange1';
+import {escapeHTML as e} from './core.js?v=20261031-student1';
 const fullName=t=>((t.prefix||'')+(t.first||'')+' '+(t.last||'')).trim();
 const normalized=v=>String(v||'').normalize('NFC').replace(/[\s\u200B-\u200D\uFEFF]/g,'');
 export function teacherLessons(db,teacher){

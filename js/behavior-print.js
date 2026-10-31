@@ -1,4 +1,4 @@
-import {escapeHTML as e} from './core.js?v=20261028-exchange1';
+import {escapeHTML as e} from './core.js?v=20261031-student1';
 
 function dateParts(value){
  const [year,month,day]=String(value).split('-').map(Number);

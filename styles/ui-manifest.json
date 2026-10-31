@@ -1,9 +1,14 @@
 {
-  "version": "20261030-unified1",
+  "version": "20261031-student1",
   "bundles": {
-    "styles/attendance-base.css": [
-      "css/theme.css",
-      "css/sidebar.css"
+    "styles/student-workspace.css": [
+      "css/student-workspace.css",
+      "css/home.css",
+      "css/attendance.css",
+      "css/behavior.css",
+      "css/reports.css",
+      "css/admin.css",
+      "css/overview.css"
     ]
   }
 }

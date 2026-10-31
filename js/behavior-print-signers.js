@@ -1,4 +1,4 @@
-import {escapeHTML as e} from './core.js?v=20261028-exchange1';
+import {escapeHTML as e} from './core.js?v=20261031-student1';
 const key='attendance-request-print-signers-v1';
 export function choosePrintSigners(names=[]){
  let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{}

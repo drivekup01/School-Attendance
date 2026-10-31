@@ -1,7 +1,7 @@
-import {roleGrants} from './school-roles.js?v=20261028-exchange1';
+import {roleGrants} from './school-roles.js?v=20261031-student1';
 // Canonical shared identity client. Copies in each school app use the same
 // Firebase project, named app, Google session and school_users profile.
-import {firebaseConfig} from './firebase-config.js?v=20261028-exchange1';
+import {firebaseConfig} from './firebase-config.js?v=20261031-student1';
 let cached;
 export async function firebase(){if(!cached)cached=(async()=>{const [P,A,F,H]=await Promise.all(['app','auth','firestore','functions'].map(n=>import(`https://www.gstatic.com/firebasejs/12.4.0/firebase-${n}.js`)));const app=P.getApps().find(a=>a.name==='school-budget')||P.initializeApp(firebaseConfig,'school-budget'),auth=A.getAuth(app),db=F.getFirestore(app),functions=H.getFunctions(app,'asia-southeast1');await auth.authStateReady();return {app,auth,db,functions,A,F,H};})().catch(e=>{cached=null;throw e;});return cached;}
 export async function login(){const c=await firebase(),provider=new c.A.GoogleAuthProvider();provider.setCustomParameters({prompt:'select_account'});try{return await c.A.signInWithPopup(c.auth,provider);}catch(e){if(['auth/popup-blocked','auth/operation-not-supported-in-this-environment'].includes(e.code))return loginRedirect();throw e;}}
