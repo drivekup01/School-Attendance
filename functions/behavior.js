@@ -30,7 +30,7 @@ async function actor(db,request){
 }
 function actorFrom(a,profile,legacy,grant){
  const email=a.token.email.trim().toLowerCase(),caps=require('./school-roles').capabilities(profile);
- if(caps){if(!caps.active)fail('permission-denied','บัญชีนี้ถูกระงับหรือบทบาทไม่ถูกต้อง');return {uid:a.uid,email,name:profile.name||a.token.name||'ครู',admin:caps.admin,manager:caps.editAnyRequest,readAll:true,canSubmit:caps.submitRequests,canApprove:caps.approveRequests,canDelete:caps.manageRequests,canEditAny:caps.editAnyRequest,canDirectPoints:caps.directPoints,canDeduct:caps.directPoints,schoolRole:profile.schoolRole};}
+ if(caps){if(!caps.active)fail('permission-denied','บัญชีนี้ถูกระงับหรือบทบาทไม่ถูกต้อง');return {uid:a.uid,email,name:profile.name||a.token.name||'ครู',admin:caps.admin,manager:caps.directPoints,readAll:true,canSubmit:caps.submitRequests,canApprove:caps.approveRequests,canDelete:caps.manageRequests,canEditAny:caps.editAnyRequest,canDirectPoints:caps.directPoints,canDeduct:caps.markAttendance,schoolRole:profile.schoolRole};}
  if(profile&&profile.active!==true)fail('permission-denied','บัญชีนี้ถูกระงับ');
  const manager=grant?.active===true&&grant.email===email;
  const teacher=profile?profile.active===true&&['teacher','admin'].includes(profile.attendanceRole):legacy?.active===true&&legacy.email?.toLowerCase()===email;
@@ -64,7 +64,6 @@ async function service(db,Timestamp,request,now=new Date()){
   const events=ledger.docs.map(d=>{const e=d.data();return {id:d.id,studentId:e.studentId,delta:e.delta,category:categories.includes(e.category)?e.category:'unspecified',reason:e.reason,date:e.day?.toDate?dayAt(e.day.toDate()):'',createdAt:iso(e.createdAt),author:e.authorName||'ครูผู้บันทึก',groupId:e.groupId||null,sourceRequestId:e.sourceRequestId||null};}).sort((x,y)=>y.createdAt.localeCompare(x.createdAt));
   return {baseScore:100,canWrite:rights.write,students:summarize(roster.docs.map(d=>({id:d.id,...d.data()})),events),events};
  }
- if(input.delta>0&&input.studentIds.length!==1)fail('permission-denied','เพิ่มคะแนนโดยตรงได้ครั้งละคน');
  if(!rights.write||(!a.manager&&input.studentIds.length!==1))fail('permission-denied','ครูทั่วไปบันทึกได้ทีละคนตามสิทธิ์ห้อง ส่วนแบบกลุ่มใช้ได้เฉพาะผู้ดูแลความประพฤติ');
  const operation=db.doc('attendance_behavior_operations/'+a.uid+'_'+input.requestId);
  const payload={classId:input.classId,studentIds:[...input.studentIds].sort(),delta:input.delta,reason:input.reason.trim(),date:input.date,category:input.category};
@@ -76,7 +75,7 @@ async function service(db,Timestamp,request,now=new Date()){
   const [central,manager,acl,liveRoom,legacy]=await Promise.all([tx.get(db.doc('school_users/'+a.uid)),tx.get(db.doc('attendance_behavior_managers/'+managerId(a.email))),tx.get(db.doc('attendance_access/'+a.uid+'/classes/'+input.classId)),tx.get(roomRef),tx.get(db.doc('attendance_teachers/'+a.uid))]);
   const live=actorFrom(request.auth,value(central),value(legacy),value(manager)),liveACL=value(acl);
   const writable=live.schoolRole?live.canDeduct:live.manager||liveACL?.active===true&&liveACL.canRead===true&&liveACL.canBehavior===true;
-  if(!liveRoom.exists||liveRoom.data().active!==true||!writable||!live.manager&&input.studentIds.length!==1||input.delta>0&&(!live.canDirectPoints||input.studentIds.length!==1))fail('permission-denied','สิทธิ์ห้องมีการเปลี่ยนแปลง กรุณาโหลดใหม่');
+  if(!liveRoom.exists||liveRoom.data().active!==true||!writable||!live.manager&&input.studentIds.length!==1||input.delta>0&&!live.canDirectPoints)fail('permission-denied','สิทธิ์ห้องมีการเปลี่ยนแปลง กรุณาโหลดใหม่');
   const roster=await Promise.all(payload.studentIds.map(s=>tx.get(roomRef.collection('students').doc(s))));
   if(roster.some(s=>!s.exists||s.data().active===false))fail('invalid-argument','พบรายชื่อนักเรียนที่ไม่พร้อมใช้งาน');
   const stamp=Timestamp.fromDate(now),day=Timestamp.fromDate(new Date(payload.date+'T00:00:00+07:00'));

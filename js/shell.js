@@ -1,4 +1,4 @@
-import {roleLabels} from './school-roles.js?v=20261031-student1';
+import {roleLabels} from './school-roles.js?v=20261107-permissions1';
 import {settings} from './settings.js?v=20261031-student1';
 import {isDemo,url} from './session.js?v=20261031-student1';
 import {escapeHTML as e} from './core.js?v=20261031-student1';
