@@ -1,5 +1,5 @@
-import {mountSubjectTermReport} from './subject-term-report.js?v=20261108-pp5-1';
-import {boot,heading,empty,notify} from './shell.js?v=20261108-pp5-1';
+import {mountSubjectTermReport} from './subject-term-report.js?v=20261108-pp5-2';
+import {boot,heading,empty,notify} from './shell.js?v=20261108-pp5-2';
 import {today,validateRange,escapeHTML as e} from './core.js?v=20261031-student1';
 import {icon} from './icons.js?v=20261031-student1';
 import {isDemo} from './session.js?v=20261108-block1';
