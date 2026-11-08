@@ -17,7 +17,7 @@ test('browser export writes dense zero-based rows so ExcelJS cannot shift sparse
  globalThis.document={createElement:()=>({click(){}})};URL.createObjectURL=()=> 'blob:test';URL.revokeObjectURL=()=>{};
  try{
   await pp5Export({year:2569,term:2,subjectCode:'T101',subject:'Test',className:'ม.1/1',range:{from:'2026-11-02',to:'2026-11-30'},total:2,lessons:[{date:'2026-11-02',period:1},{date:'2026-11-02',period:2}],students:[{id:'s1',number:1,name:'Synthetic student',history:[]}]});
-  for(const s of sheets){assert.deepEqual(s.rows.slice(3,8).map(r=>r[4]),['สัปดาห์','เดือน','วัน','วันที่','คาบ']);assert.equal(s.rows[5][5],'จ');}
+  for(const s of sheets){assert.deepEqual(s.rows.slice(3,8).map(r=>r[4]),['สัปดาห์','เดือน','วัน','วันที่','คาบ']);assert.equal(s.rows[5][5],'จ');for(const r of [7,8])assert.equal(s.getCell(r,6).alignment.textRotation,90);assert.equal(s.getCell(7,5).alignment.textRotation,0);}
   assert.equal(sheets[0].rows[7][5],'1–2');assert.equal(sheets[0].rows[9][5],2);
  }finally{globalThis.window=oldWindow;globalThis.document=oldDocument;URL.createObjectURL=oldCreate;URL.revokeObjectURL=oldRevoke;}
 });

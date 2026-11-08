@@ -7,7 +7,9 @@ The semester subject report's **Excel ปพ.5** action uses the layout of the s
 - Dates, course code, teachers, roster, planned periods and effective attendance come from `attendanceTermReport`.
 - PP5 uses exactly 20 calendar weeks anchored to Monday of the opening week: four sheets per classroom, five weeks per sheet. Lessons and histories are clipped and totals recomputed for export only. UI tables and CSV retain the full semester.
 - Course selection groups actual code and name; eligible rooms combine in one file. Missing or ambiguous codes stay isolated by room. Backend authorization remains per teacher and class. Sheet names include level and room.
-- All week/month/day/date/period headers are horizontal, with widths fitted to date and cumulative-period text.
+- Week/month/day labels stay horizontal. Only numeric date and cumulative-period cells rotate up (90 degrees), with fitted row heights.
+- Summary formulas include cached numeric results (including zero), integer number formats and automatic recalculation. Counts are weighted by actual periods across all four sheets. They are attendance reports only and never update SGS grades.
+- The report page separates semester PP5 reports from date-range exports using two top buttons; switching views retains filters without loading another report.
 - Each consecutive block uses one marker and the latest status for the entire block. Nonconsecutive blocks on the same day receive distinct subcolumns.
 - Cumulative period headers are separate from actual school-period numbers. Hidden numeric weight rows hold the actual number of periods in each block. Bounded `SUMIF` formulas total the markers across all pages; there is no fixed `COUNTIF * 2` or fixed 34-period total.
 - `/` present, `ส` late, `ป` known sick leave, `ล` known personal leave. Existing generic leave is shown separately as `ลา`; its type is never inferred from a note or guessed. Unknown future or unchecked marks stay blank.

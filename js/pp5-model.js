@@ -44,9 +44,9 @@ export function buildPp5Model(reports){
   const roomNumber=report.className.split('/').at(-1).replace(/[^0-9]/g,'')||'1';
   for(let page=0;page<pageCount;page++){
    const stem=report.className.replace(/[:\\/?*\[\]]/g,'-').replace(/\s+/g,''),name=`${stem} หน้า ${page+1}`;if(sheets.some(s=>s.name===name))throw Error('ชื่อห้องซ้ำในชุดส่งออก กรุณาตรวจรายชื่อห้อง');names.push(name);
-   const last=page===pageCount-1,studentLast=8+students.length,weightRow=studentLast+1,values=Array.from({length:weightRow},()=>[]),merges=[],columns=[3.21875,6.44140625,8.44140625,7.77734375,8],rowHeights={1:19,2:38,3:22,4:21,5:21,6:21,7:24,8:26},markColumns=[],weekHeaders=[];
+   const last=page===pageCount-1,studentLast=8+students.length,weightRow=studentLast+1,values=Array.from({length:weightRow},()=>[]),merges=[],columns=[3.21875,6.44140625,8.44140625,7.77734375,8],rowHeights={1:19,2:38,3:22,4:21,5:21,6:21,7:32,8:48},markColumns=[],weekHeaders=[];
    const set=(r,c,value)=>{values[r-1][c-1]=value;};let col=6;
-   set(1,1,report.schoolName||'โรงเรียน');set(2,1,`รหัสวิชา ${report.subjectCode||'—'}  ชื่อวิชา ${report.subject}  จำนวน ${report.credits==null?'........':Number.isInteger(Number(report.credits))?Number(report.credits).toFixed(1):String(report.credits)} หน่วยกิต\nชั้น ${report.className}  ภาคเรียนที่ ${report.term} ปีการศึกษา ${report.year}  หน้า ${page+1}/${pageCount}`);set(3,1,`ครูผู้สอน ${(report.teacherNames||[]).join(' / ')||'—'}`);
+   set(1,1,(report.schoolName||'โรงเรียน')+' · รายงานเช็คชื่อ');set(2,1,`รหัสวิชา ${report.subjectCode||'—'}  ชื่อวิชา ${report.subject}  จำนวน ${report.credits==null?'........':Number.isInteger(Number(report.credits))?Number(report.credits).toFixed(1):String(report.credits)} หน่วยกิต\nชั้น ${report.className}  ภาคเรียนที่ ${report.term} ปีการศึกษา ${report.year}  หน้า ${page+1}/${pageCount}`);set(3,1,`ครูผู้สอน ${(report.teacherNames||[]).join(' / ')||'—'}`);
    set(4,1,'เลขที่');set(4,2,'ชื่อ - สกุล');merges.push('A4:A8','B4:D8');['สัปดาห์','เดือน','วัน','วันที่','คาบ'].forEach((v,i)=>set(i+4,5,v));
    for(let wi=0;wi<5;wi++){
     const weekIndex=page*5+wi,start=col,dates=Array.from({length:5},(_,d)=>iso(first+(weekIndex*7+d)*86400000)),active=weekIndex<weekCount,monthNames=[];
