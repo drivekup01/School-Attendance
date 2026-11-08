@@ -1,7 +1,7 @@
 import {settings} from './settings.js?v=20261031-student1';
 export const isDemo=new URLSearchParams(location.search).get('demo')==='1';
 export const demoAdmin=isDemo&&new URLSearchParams(location.search).get('view')==='admin';
-export const url = page => {const params=new URLSearchParams();if(isDemo){params.set('demo','1');if(demoAdmin)params.set('view','admin');}if(page==='reports')params.set('v','20261108-pp5-2');return `${page}.html${params.size?'?'+params.toString():''}`;};
+export const url = page => {const params=new URLSearchParams();if(isDemo){params.set('demo','1');if(demoAdmin)params.set('view','admin');}if(page==='reports')params.set('v','20261108-pp5-3');return `${page}.html${params.size?'?'+params.toString():''}`;};
 export async function context(page){
  if(page==='index'&&!isDemo&&settings.databaseReady){const shared=await import('./school-auth.js?v=20261031-student1');const p=await shared.profile();if(p&&!['admin','teacher','viewer'].includes(p.attendanceRole))return {provider:null,user:{...p,role:'viewer'},assignments:[]};}
  if(isDemo){const {demo}=await import('./demo.js?v=20261031-student1');return {provider:demo,user:{...await demo.profile(),role:new URLSearchParams(location.search).get('view')==='viewer'?'viewer':demoAdmin?'admin':'teacher'},assignments:await demo.assignments()};}

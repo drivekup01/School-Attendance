@@ -1,7 +1,7 @@
-import {pp5Export,pp5Filename} from './pp5-export.js?v=20261108-pp5-2';
+import {pp5Export,pp5Filename} from './pp5-export.js?v=20261108-pp5-3';
 import {call} from './school-auth.js?v=20261031-student1';
 import {escapeHTML as e} from './core.js?v=20261031-student1';
-import {csvExport} from './export.js?v=20261108-pp5-2';
+import {csvExport} from './export.js?v=20261108-pp5-3';
 export async function mountSubjectTermReport(page,{isDemo=false}={}){
  const panel=document.createElement('section');panel.className='panel';panel.innerHTML=`<div class="panel-heading"><div><h2>รายงานเช็คชื่อรายคาบ · สรุปภาคเรียน</h2><p class="fine-print">เลือกตามรหัสวิชาและรายวิชา · รวมชั้น/ห้องที่สอนวิชาเดียวกันได้</p></div></div><form data-form><div class="filters"><label class="field"><span>ปีการศึกษา / ภาคเรียน</span><select data-term disabled></select></label><label class="field"><span>รหัสวิชา / รายวิชา</span><select data-subject disabled><option value="">เลือกรายวิชา</option></select></label><label class="field"><span>ชั้นเรียน / ห้อง</span><select data-class disabled><option value="">เลือกห้องเรียน</option></select></label><button class="button" data-load disabled>แสดงรายงาน</button></div></form><p class="fine-print">Excel ปพ.5 ใช้สัปดาห์ที่ 1–20 จำนวน 4 ชีตต่อห้อง และสรุปเฉพาะคาบใน 20 สัปดาห์ที่แสดง</p><p data-status class="fine-print" role="status">กำลังโหลดภาคเรียน…</p><div data-result></div>`;
  page.querySelector('.panel').before(panel);
