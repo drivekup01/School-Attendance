@@ -3,7 +3,7 @@ const {createHash}=require('node:crypto');
 // Teachers write immutable per-student mark history directly under Firestore
 // Rules. Log the committed history, not a browser's claim that saving succeeded.
 async function recordMarkHistory(db,event){
- const data=event.data?.data();if(!data?.teacherUid||!data.updatedAt)return;
+ const data=event.data?.data();if(!data?.teacherUid||!data.updatedAt||data.status==='cleared')return;
  const profile=(await db.doc('school_users/'+data.teacherUid).get()).data();
  // Admin saves go through attendanceAdmin and are logged once by its wrapper.
  if(profile?.schoolRole==='admin'||profile?.attendanceRole==='admin')return;

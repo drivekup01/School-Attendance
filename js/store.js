@@ -1,7 +1,7 @@
 import './attendance-blocks.js?v=20261108-block1';
 const Blocks=globalThis.AttendanceBlocks;
 import {visibleAssignments,historicalLessons} from './catalog-client.js?v=20261031-student1';
-import {firebase} from './firebase-client.js?v=20261031-student1';
+import {firebase} from './firebase-client.js?v=20261108-clear1';
 import {settings} from './settings.js?v=20261031-student1';
 import {validDate,validateMarks,validateRange,today,assignmentsOn} from './core.js?v=20261031-student1';
 const C=Object.freeze({teachers:'attendance_teachers',access:'attendance_access',assignments:'attendance_assignments',classes:'attendance_classes',behavior:'attendance_behavior'});
@@ -16,7 +16,7 @@ function asAssignment(snap){const d=snap.data();return {...d,id:snap.id,from:iso
 export const store={
  async assignments(){const {profile,call}=await import('./school-auth.js?v=20261031-student1');const [user,data]=await Promise.all([profile(),call('schoolIdentity',{method:'attendanceCatalog'})]);this.catalog=data;return visibleAssignments(data.assignments,user);},
  async students(classId){const c=await ready();if(!validId(classId))throw Error('รหัสห้องไม่ถูกต้อง');const s=await c.F.getDocsFromServer(c.F.collection(c.db,C.classes,classId,'students'));return s.docs.map(d=>({...d.data(),id:d.id})).filter(s=>s.active!==false).sort((a,b)=>a.number-b.number);},
- async rawSession(a,date){if(a.virtualMorning)return (await import('./school-auth.js?v=20261031-student1')).call('schoolIdentity',{method:'morningSession',classId:a.classId,date});if(a.virtualSubject)return {marks:{},revision:{},updatedAt:''};const c=await ready();if(!validDate(date)||!validId(a.id))throw Error('วันที่หรือคาบไม่ถูกต้อง');const snaps=await c.F.getDocsFromServer(c.F.collection(c.db,C.assignments,a.id,'days',key(date),'marks'));const marks={},revision={};let updatedAt='';for(const snap of snaps.docs){const d=snap.data();marks[snap.id]={status:d.status,note:d.note,updatedAt:instant(d.updatedAt)};revision[snap.id]=d.revision;const time=instant(d.updatedAt);if(time>updatedAt)updatedAt=time;}return {marks,revision,updatedAt};},
+ async rawSession(a,date){if(a.virtualMorning)return (await import('./school-auth.js?v=20261031-student1')).call('schoolIdentity',{method:'morningSession',classId:a.classId,date});if(a.virtualSubject)return {marks:{},revision:{},updatedAt:''};const c=await ready();if(!validDate(date)||!validId(a.id))throw Error('วันที่หรือคาบไม่ถูกต้อง');const snaps=await c.F.getDocsFromServer(c.F.collection(c.db,C.assignments,a.id,'days',key(date),'marks'));const marks={},revision={};let updatedAt='';for(const snap of snaps.docs){const d=snap.data();if(['present','late','absent','leave'].includes(d.status))marks[snap.id]={status:d.status,note:d.note,updatedAt:instant(d.updatedAt)};revision[snap.id]=d.revision;const time=instant(d.updatedAt);if(time>updatedAt)updatedAt=time;}return {marks,revision,updatedAt};},
  async session(a,date){
   const raw=await this.rawSession(a,date);if(a.kind==='morning'){return {...raw,marks:Object.fromEntries(Object.entries(raw.marks).map(([id,m])=>[id,{status:m.status,note:m.note||''}]))};}
   const daily=assignmentsOn(this.catalog?.assignments||[a],date,'subject').filter(job=>job.classId===a.classId&&job.subject===a.subject);if(!daily.some(job=>job.id===a.id))daily.push(a);

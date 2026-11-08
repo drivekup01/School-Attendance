@@ -1,9 +1,9 @@
 import {mountReportViews} from './report-views.js?v=20261108-pp5-4';
 import {mountSubjectTermReport} from './subject-term-report.js?v=20261108-pp5-4';
-import {boot,heading,empty,notify} from './shell.js?v=20261108-pp5-4';
+import {boot,heading,empty,notify} from './shell.js?v=20261108-clear1';
 import {today,validateRange,escapeHTML as e} from './core.js?v=20261031-student1';
 import {icon} from './icons.js?v=20261031-student1';
-import {isDemo} from './session.js?v=20261108-block1';
+import {isDemo} from './session.js?v=20261108-clear1';
 import {reportRows,csvExport,xlsxExport} from './export.js?v=20261108-exportfit1';
 boot('reports',async ctx=>{
  const day=today(),classes=ctx.classes?.map(c=>({classId:c.id,className:c.name}))||[...new Map(ctx.assignments.map(a=>[a.classId,a])).values()];let rows=[],records=[],loadedKind='',loadedName='';

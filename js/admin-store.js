@@ -1,4 +1,4 @@
-import {firebase} from './firebase-client.js?v=20261031-student1';
+import {firebase} from './firebase-client.js?v=20261108-clear1';
 import {settings} from './settings.js?v=20261031-student1';
 import {validDate,escapeHTML,today} from './core.js?v=20261031-student1';
 const idOK=id=>/^[A-Za-z0-9_-]{1,100}$/.test(id);

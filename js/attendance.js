@@ -1,9 +1,9 @@
 import {attendanceMessage} from './attendance-message.js?v=20261108-telegram1';
 import {displayDayFirst} from './date-input.js?v=20261031-student1';
-import {heading,empty,notify} from './shell.js?v=20261108-pp5-4';
+import {heading,empty,notify} from './shell.js?v=20261108-clear1';
 import {today,thaiDate,assignmentsOn,counts,statuses,escapeHTML as e,validateMarks,validDate} from './core.js?v=20261031-student1';
 import {icon} from './icons.js?v=20261031-student1';
-import {isDemo} from './session.js?v=20261108-block1';
+import {isDemo} from './session.js?v=20261108-clear1';
 export async function attendancePage(ctx,kind){
  const requestedDate=new URLSearchParams(location.search).get('date');
  const morning=kind==='morning';let date=validDate(requestedDate||'')&&requestedDate<=today()?requestedDate:today(),assignment,students=[],marks={},revision=0,dirty=false,busy=false,loadVersion=0,savedAt='',blockPeriods=[];

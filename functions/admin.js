@@ -15,8 +15,9 @@ const {timetable,selectClasses}=require('./class-catalog');
 const {validateRoster,replaceRoster}=require('./roster-import');
 async function service(db,T,request,now=new Date()){
  const a=await actor(db,request);if(!a.admin)fail('permission-denied','ใช้ได้เฉพาะผู้ดูแลระบบเช็คชื่อ');
- const input=request.data||{},allowed={replaceRoster:['method','classId','academicYear','term','label','students'],list:['method'],students:['method','classId'],saveClass:['method','item'],saveStudent:['method','classId','item'],saveAssignment:['method','item'],saveMarks:['method','assignmentId','date','marks','revisions']};
+ const input=request.data||{},allowed={previewClearAttendance:['method','classId','date','kind'],clearAttendance:['method','classId','date','kind','token','requestId'],replaceRoster:['method','classId','academicYear','term','label','students'],list:['method'],students:['method','classId'],saveClass:['method','item'],saveStudent:['method','classId','item'],saveAssignment:['method','item'],saveMarks:['method','assignmentId','date','marks','revisions']};
  if(!Object.hasOwn(allowed,input.method)||Object.keys(input).some(k=>!allowed[input.method].includes(k)))fail('invalid-argument','ข้อมูลคำขอไม่ถูกต้อง');
+ if(['previewClearAttendance','clearAttendance'].includes(input.method))return require('./clear-attendance').service(db,T,input,a,liveAdmin,now);
  if(input.method==='list'){
   const [p,l,rooms,jobs,native]=await Promise.all([db.collection('school_users').get(),db.collection('attendance_teachers').get(),db.collection('attendance_classes').get(),db.collection('attendance_assignments').get(),timetable(db)]);
   const central=new Map(p.docs.map(s=>[s.id,s.data()])),profiles=[...central].map(([uid,d])=>({id:uid,...d}));for(const s of l.docs)if(!central.has(s.id))profiles.push({id:s.id,...s.data(),attendanceRole:s.data().role||'teacher'});

@@ -1,7 +1,7 @@
 import {demoHome,lessonHTML} from './home-data.js?v=20261031-student1';
 import {renderOverview} from './overview.js?v=20261031-student1';
-import {boot,heading,empty} from './shell.js?v=20261031-student1';
-import {isDemo,url} from './session.js?v=20261031-student1';
+import {boot,heading,empty} from './shell.js?v=20261108-clear1';
+import {isDemo,url} from './session.js?v=20261108-clear1';
 import {today,thaiDate,escapeHTML as e} from './core.js?v=20261031-student1';
 import {icon} from './icons.js?v=20261031-student1';
 boot('index',async(ctx)=>{

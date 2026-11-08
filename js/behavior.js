@@ -1,6 +1,6 @@
-import {shell,heading,empty,notify,friendlyError,setIdentity} from './shell.js?v=20261031-student1';
+import {shell,heading,empty,notify,friendlyError,setIdentity} from './shell.js?v=20261108-clear1';
 import {today,thaiDate,escapeHTML as e} from './core.js?v=20261031-student1';
-import {isDemo} from './session.js?v=20261031-student1';
+import {isDemo} from './session.js?v=20261108-clear1';
 import {icon} from './icons.js?v=20261031-student1';
 import {behaviorCategories,categoryDescriptions,deductionSummary} from './behavior-categories.js?v=20261031-student1';
 import {BehaviorGroupSelection,createBehaviorPlan,saveBehaviorPlan} from './behavior-group.js?v=20261107-multiroom1';

@@ -25,12 +25,12 @@ export const real={
    if(!p?.active||!['teacher','admin','viewer'].includes(p.attendanceRole))throw Error('บัญชีนี้ยังไม่ได้รับสิทธิ์ระบบเช็คชื่อ กรุณาติดต่อผู้ดูแลบัญชีกลาง');
    return {...p,role:p.attendanceRole};
  },
- async classes(){const store=(await import('./store.js?v=20261108-block1')).store;return store.catalog?.classes||[];},
- async assignments(){return (await import('./store.js?v=20261108-block1')).store.assignments();},
- async students(classId){return (await import('./store.js?v=20261108-block1')).store.students(classId);},
- async session(a,date){return (await import('./store.js?v=20261108-block1')).store.session(a,date);},
- async save(a,date,students,marks,revision){return (await import('./store.js?v=20261108-block1')).store.save(a,date,students,marks,revision);},
- async behavior(classId){return (await import('./store.js?v=20261108-block1')).store.behavior(classId);},
- async addBehavior(item){return (await import('./store.js?v=20261108-block1')).store.addBehavior(item);},
- async report(from,to,kind){return (await import('./store.js?v=20261108-block1')).store.report(from,to,kind);}
+ async classes(){const store=(await import('./store.js?v=20261108-clear1')).store;return store.catalog?.classes||[];},
+ async assignments(){return (await import('./store.js?v=20261108-clear1')).store.assignments();},
+ async students(classId){return (await import('./store.js?v=20261108-clear1')).store.students(classId);},
+ async session(a,date){return (await import('./store.js?v=20261108-clear1')).store.session(a,date);},
+ async save(a,date,students,marks,revision){return (await import('./store.js?v=20261108-clear1')).store.save(a,date,students,marks,revision);},
+ async behavior(classId){return (await import('./store.js?v=20261108-clear1')).store.behavior(classId);},
+ async addBehavior(item){return (await import('./store.js?v=20261108-clear1')).store.addBehavior(item);},
+ async report(from,to,kind){return (await import('./store.js?v=20261108-clear1')).store.report(from,to,kind);}
 };
