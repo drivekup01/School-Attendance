@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {attendanceMessage} from '../js/attendance-message.js';
+const students=Array.from({length:19},(_,i)=>({id:'s'+i,number:i+1,name:'นักเรียนทดสอบ '+(i+1)}));
+const marks=Object.fromEntries(students.map((s,i)=>[s.id,{status:i===16?'late':i===17?'absent':i===18?'leave':'present'}]));
+const input={date:'2026-11-05',assignment:{className:'ม.2/3',subject:'วิชาทดสอบ',period:2,teacherName:'ครูทดสอบ',time:'09:20–10:10'},students,marks};
+test('Telegram totals include late within attendance and leave within non-attendance without double counting',()=>{const text=attendanceMessage(input);assert.match(text,/ทั้งหมด 19 คน/);assert.match(text,/มาเรียน 17 คน \(รวมมาสาย 1 คน\)/);assert.match(text,/❌ ไม่มาเรียน 2 คน/);assert.match(text,/ขาด 1 คน · ลา 1 คน/);assert.match(text,/1\. นักเรียนทดสอบ 17 : 🕘 สาย/);assert.match(text,/3\. นักเรียนทดสอบ 19 : 📝 ลา/);assert.doesNotMatch(text,/ยังไม่เช็ค/);});
+test('pending students are separate and stale marks outside current roster are ignored',()=>{const text=attendanceMessage({...input,students:[...students,{id:'pending',number:20,name:'Pending'}],marks:{...marks,foreign:{status:'absent'}}});assert.match(text,/ทั้งหมด 20 คน/);assert.match(text,/⏳ ยังไม่เช็ค 1 คน/);assert.match(text,/❌ ไม่มาเรียน 2 คน/);});
+test('subject summary includes lesson and teacher; all-present message has no exception list and does not mutate input',()=>{const one=[{id:'a',name:'ตัวอย่าง\nทดสอบ',number:1}];const text=attendanceMessage({...input,morning:false,students:one,marks:{a:{status:'present'}}});assert.match(text,/เช็คชื่อรายคาบ/);assert.match(text,/วิชาทดสอบ · คาบ 2/);assert.match(text,/ครูผู้สอน ครูทดสอบ/);assert.match(text,/ไม่มีนักเรียนที่สาย ขาด หรือลา/);assert.equal(one[0].name,'ตัวอย่าง\nทดสอบ');});
