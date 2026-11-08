@@ -1,3 +1,5 @@
+import './attendance-blocks.js?v=20261108-block1';
+const Blocks=globalThis.AttendanceBlocks;
 import {visibleAssignments,historicalLessons} from './catalog-client.js?v=20261031-student1';
 import {firebase} from './firebase-client.js?v=20261031-student1';
 import {settings} from './settings.js?v=20261031-student1';
@@ -14,7 +16,15 @@ function asAssignment(snap){const d=snap.data();return {...d,id:snap.id,from:iso
 export const store={
  async assignments(){const {profile,call}=await import('./school-auth.js?v=20261031-student1');const [user,data]=await Promise.all([profile(),call('schoolIdentity',{method:'attendanceCatalog'})]);this.catalog=data;return visibleAssignments(data.assignments,user);},
  async students(classId){const c=await ready();if(!validId(classId))throw Error('รหัสห้องไม่ถูกต้อง');const s=await c.F.getDocsFromServer(c.F.collection(c.db,C.classes,classId,'students'));return s.docs.map(d=>({...d.data(),id:d.id})).filter(s=>s.active!==false).sort((a,b)=>a.number-b.number);},
- async session(a,date){if(a.virtualMorning)return (await import('./school-auth.js?v=20261031-student1')).call('schoolIdentity',{method:'morningSession',classId:a.classId,date});if(a.virtualSubject)return {marks:{},revision:{},updatedAt:''};const c=await ready();if(!validDate(date)||!validId(a.id))throw Error('วันที่หรือคาบไม่ถูกต้อง');const snaps=await c.F.getDocsFromServer(c.F.collection(c.db,C.assignments,a.id,'days',key(date),'marks'));const marks={},revision={};let updatedAt='';for(const snap of snaps.docs){const d=snap.data();marks[snap.id]={status:d.status,note:d.note};revision[snap.id]=d.revision;const time=instant(d.updatedAt);if(time>updatedAt)updatedAt=time;}return {marks,revision,updatedAt};},
+ async rawSession(a,date){if(a.virtualMorning)return (await import('./school-auth.js?v=20261031-student1')).call('schoolIdentity',{method:'morningSession',classId:a.classId,date});if(a.virtualSubject)return {marks:{},revision:{},updatedAt:''};const c=await ready();if(!validDate(date)||!validId(a.id))throw Error('วันที่หรือคาบไม่ถูกต้อง');const snaps=await c.F.getDocsFromServer(c.F.collection(c.db,C.assignments,a.id,'days',key(date),'marks'));const marks={},revision={};let updatedAt='';for(const snap of snaps.docs){const d=snap.data();marks[snap.id]={status:d.status,note:d.note,updatedAt:instant(d.updatedAt)};revision[snap.id]=d.revision;const time=instant(d.updatedAt);if(time>updatedAt)updatedAt=time;}return {marks,revision,updatedAt};},
+ async session(a,date){
+  const raw=await this.rawSession(a,date);if(a.kind==='morning'){return {...raw,marks:Object.fromEntries(Object.entries(raw.marks).map(([id,m])=>[id,{status:m.status,note:m.note||''}]))};}
+  const daily=assignmentsOn(this.catalog?.assignments||[a],date,'subject').filter(job=>job.classId===a.classId&&job.subject===a.subject);if(!daily.some(job=>job.id===a.id))daily.push(a);
+  const lessons=daily.map(job=>({...job,date,key:job.id})),group=Blocks.groups(lessons).find(block=>block.some(job=>job.id===a.id))||[{...a,date,key:a.id}],sessions=new Map([[a.id,raw]]);
+  await Promise.all(group.filter(job=>job.id!==a.id).map(async job=>sessions.set(job.id,await this.rawSession(job,date))));
+  const ids=new Set([...sessions.values()].flatMap(session=>Object.keys(session.marks))),marks={};for(const id of ids){const value=Blocks.project(group,job=>sessions.get(job.id)?.marks[id]).get(a.id);if(value)marks[id]={status:value.status,note:value.note||''};}
+  return {...raw,marks,updatedAt:[...sessions.values()].map(s=>s.updatedAt||'').sort().at(-1)||'',blockPeriods:[...new Set(group.map(job=>Number(job.period)))]};
+ },
  async save(a,date,students,marks,revision){
   validateMarks(students,marks);if(a.virtualSubject||a.canWrite===false)throw Error('ห้องหรือคาบนี้ดูได้อย่างเดียว');if(a.virtualMorning)return (await import('./school-auth.js?v=20261031-student1')).call('schoolIdentity',{method:'saveMorningSession',classId:a.classId,date,marks,revisions:revision,requestId:crypto.randomUUID()});
   const latest=(await this.assignments()).find(x=>x.id===a.id&&x.kind===a.kind&&x.classId===a.classId&&x.subject===a.subject&&x.canWrite);if(!latest)throw Error('ตารางสอนหรือสิทธิ์เปลี่ยนแล้ว กรุณาโหลดข้อมูลล่าสุดก่อนบันทึก');
@@ -26,7 +36,7 @@ export const store={
   try{for(let offset=0;offset<students.length;offset+=5){const chunk=students.slice(offset,offset+5);await c.F.runTransaction(c.db,async tx=>{
     const prior=await Promise.all(chunk.map(s=>tx.get(markRef(c,a,date,s.id))));
     for(let i=0;i<chunk.length;i++){const s=chunk[i],snap=prior[i],old=snap.exists()?snap.data():null;if((old?.revision||0)!==(revision[s.id]||0))throw Error('ข้อมูลมีการเปลี่ยนแปลงจากอีกหน้าจอ กรุณาโหลดใหม่ก่อนบันทึก');}
-    for(let i=0;i<chunk.length;i++){const s=chunk[i],snap=prior[i],old=snap.exists()?snap.data():null,m=marks[s.id];if(old?.status===m.status&&old?.note===(m.note||''))continue;const ref=markRef(c,a,date,s.id),next={assignmentId:a.id,teacherUid:c.uid,classId:a.classId,studentId:s.id,day,status:m.status,note:m.note||'',revision:(old?.revision||0)+1,createdAt:old?.createdAt||c.F.serverTimestamp(),updatedAt:c.F.serverTimestamp()};tx.set(ref,next);tx.set(c.F.doc(ref,'history',String(next.revision)),next);}
+    for(let i=0;i<chunk.length;i++){const s=chunk[i],snap=prior[i],old=snap.exists()?snap.data():null,m=marks[s.id];if(a.kind==='morning'&&old?.status===m.status&&old?.note===(m.note||''))continue;const ref=markRef(c,a,date,s.id),next={assignmentId:a.id,teacherUid:c.uid,classId:a.classId,studentId:s.id,day,status:m.status,note:m.note||'',revision:(old?.revision||0)+1,createdAt:old?.createdAt||c.F.serverTimestamp(),updatedAt:c.F.serverTimestamp()};tx.set(ref,next);tx.set(c.F.doc(ref,'history',String(next.revision)),next);}
    });completed+=chunk.length;}
   }catch(error){if(completed)throw Error(`บันทึกไปบางส่วนแล้ว (${completed} คน) กรุณาจดการแก้ไขที่เหลือ แล้วกดโหลดใหม่ก่อนบันทึกอีกครั้ง: ${error.message}`);throw error;}
   return this.session(a,date);

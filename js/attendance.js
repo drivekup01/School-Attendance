@@ -1,12 +1,12 @@
 import {attendanceMessage} from './attendance-message.js?v=20261108-telegram1';
 import {displayDayFirst} from './date-input.js?v=20261031-student1';
-import {heading,empty,notify} from './shell.js?v=20261031-student1';
+import {heading,empty,notify} from './shell.js?v=20261108-block1';
 import {today,thaiDate,assignmentsOn,counts,statuses,escapeHTML as e,validateMarks,validDate} from './core.js?v=20261031-student1';
 import {icon} from './icons.js?v=20261031-student1';
-import {isDemo} from './session.js?v=20261031-student1';
+import {isDemo} from './session.js?v=20261108-block1';
 export async function attendancePage(ctx,kind){
  const requestedDate=new URLSearchParams(location.search).get('date');
- const morning=kind==='morning';let date=validDate(requestedDate||'')&&requestedDate<=today()?requestedDate:today(),assignment,students=[],marks={},revision=0,dirty=false,busy=false,loadVersion=0,savedAt='';
+ const morning=kind==='morning';let date=validDate(requestedDate||'')&&requestedDate<=today()?requestedDate:today(),assignment,students=[],marks={},revision=0,dirty=false,busy=false,loadVersion=0,savedAt='',blockPeriods=[];
  let all=ctx.assignments.filter(a=>morning?a.kind==='morning':a.kind!=='morning');
  document.querySelector('#pageContent').innerHTML=heading('',morning?'เช็คชื่อเข้าแถวเช้า':'เช็คชื่อรายวิชา / สอนแทน',morning?'บันทึกเฉพาะการเข้าแถวตอนเช้า แยกจากการเข้าเรียนรายวิชา':'เลือกคาบตามตารางสอน หรือคาบสอนแทนที่ได้รับมอบหมาย')+`
  ${all[0]?.year?'<p class="fine-print">ปีการศึกษา '+e(all[0].year)+' · ภาคเรียนที่ '+e(all[0].term)+'</p>':''}
@@ -30,17 +30,18 @@ export async function attendancePage(ctx,kind){
   const p=c.total?c.present/c.total*100:0;document.querySelector('#percent').textContent=c.total?p.toFixed(1)+'%':'—';document.querySelector('#ring').style.background=`conic-gradient(#8050b3 ${p}%,#f0e9f7 0)`;
   document.querySelector('#allPresent').disabled=!editable()||!students.length||busy;save.disabled=!editable()||!students.length||!dirty||busy||c.unmarked>0;
   document.querySelector('#saveState').textContent=busy?'กำลังบันทึก…':dirty?'มีการเปลี่ยนแปลงที่ยังไม่บันทึก':savedAt?'บันทึกสำเร็จ • '+new Date(savedAt).toLocaleTimeString('th-TH',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit'}):'ยังไม่ได้บันทึก';
+  if(!morning&&blockPeriods.length>1)document.querySelector('#unmarked').textContent+=' · คาบ '+blockPeriods.join('–')+' ใช้ผลเช็คครั้งล่าสุดของทั้งช่วง';
  }
  function renderRoster(){
   const search=document.querySelector('#studentSearch').value.trim().toLowerCase(),visible=students.filter(s=>(s.name+' '+s.code+' '+s.number).toLowerCase().includes(search));
   document.querySelector('#roster').innerHTML=students.length?(visible.length?`<div class="student-list">${visible.map(s=>`<article class="student-row" data-student="${e(s.id)}"><div class="student-number">${s.number}</div><div class="student-name"><strong>${e(s.name)}</strong><small>${e(s.code)}</small></div><div class="status-buttons" role="group" aria-label="สถานะของ ${e(s.name)}">${Object.entries(statuses).map(([key,label])=>`<button class="status-button ${key}" ${!editable()?'disabled':''} data-status="${key}" aria-pressed="${marks[s.id]?.status===key}">${label}</button>`).join('')}</div><input class="note" ${!editable()?'readonly':''} placeholder="หมายเหตุ" maxlength="300" value="${e(marks[s.id]?.note||'')}" aria-label="หมายเหตุของ ${e(s.name)}"></article>`).join('')}</div>`:empty('ไม่พบรายชื่อ','ลองค้นหาด้วยชื่อหรือรหัสนักเรียนอื่น')):empty(assignment?'ยังไม่มีรายชื่อนักเรียน':'ยังไม่มีห้อง / คาบสอน',assignment?'เพิ่มรายชื่อนักเรียนภายหลังได้ โดยไม่ต้องสร้างข้อมูลสมมติในระบบจริง':'ห้องและคาบที่ได้รับสิทธิ์จะแสดงให้เลือกที่ด้านบน');updateSummary();
  }
  async function load(){
-  const version=++loadVersion;assignment=all.find(a=>a.id===select.value);students=[];marks={};revision=0;dirty=false;savedAt='';updateSummary();
+  const version=++loadVersion;assignment=all.find(a=>a.id===select.value);students=[];marks={};revision=0;dirty=false;savedAt='';blockPeriods=[];updateSummary();
   document.querySelector('#assignmentInfo').innerHTML=assignment?`<div class="assignment-card">${icon(morning?'morning':'subject')}<div><strong>${e(assignment.subject)} • ${e(assignment.className)}</strong><small>${e(assignment.time)} · ${thaiDate(date)}</small></div>${assignment.kind==='substitute'?'<span class="tag substitute">สอนแทน</span>':''}</div>${assignment.virtualSubject?'<p class="fine-print">ตารางสอนจากต้นทาง · คาบนี้ยังไม่เชื่อมรายการเช็คชื่อกับบัญชีครู จึงแสดงข้อมูลได้อย่างเดียว</p>':''}`:'';
   if(!assignment||!ctx.provider){renderRoster();return;}
   document.querySelector('#roster').innerHTML='<div class="loading">กำลังโหลดรายชื่อ…</div>';
-  try{const [roster,session]=await Promise.all([ctx.provider.students(assignment.classId),ctx.provider.session(assignment,date)]);if(version!==loadVersion)return;students=roster;marks=session.marks;revision=session.revision;savedAt=session.updatedAt||'';renderRoster();}catch(error){if(version===loadVersion){document.querySelector('#roster').innerHTML=empty('โหลดรายชื่อไม่สำเร็จ',error.message);notify(error.message,true);}}
+  try{const [roster,session]=await Promise.all([ctx.provider.students(assignment.classId),ctx.provider.session(assignment,date)]);if(version!==loadVersion)return;students=roster;marks=session.marks;revision=session.revision;savedAt=session.updatedAt||'';blockPeriods=session.blockPeriods||[];renderRoster();}catch(error){if(version===loadVersion){document.querySelector('#roster').innerHTML=empty('โหลดรายชื่อไม่สำเร็จ',error.message);notify(error.message,true);}}
  }
  function canLeave(){return !dirty||confirm('มีข้อมูลที่ยังไม่บันทึก ต้องการละทิ้งการแก้ไขหรือไม่?');}
  options(new URLSearchParams(location.search).get('assignment'));await load();
@@ -53,7 +54,7 @@ export async function attendancePage(ctx,kind){
  document.querySelector('#roster').addEventListener('input',event=>{if(!editable()||!event.target.matches('.note'))return;const id=event.target.closest('[data-student]').dataset.student;marks[id]={...marks[id],note:event.target.value};dirty=true;updateSummary();});
  save.addEventListener('click',async()=>{
   if(busy||!editable())return;
-  try{validateMarks(students,marks);busy=true;select.disabled=true;dateInput.disabled=true;document.querySelector('#roster').inert=true;updateSummary();const result=await ctx.provider.save(assignment,date,students,structuredClone(marks),revision);revision=result.revision;savedAt=result.updatedAt;dirty=false;notify(isDemo?'บันทึกข้อมูลทดลองสำเร็จ (เฉพาะแท็บนี้)':'บันทึกสำเร็จ');}catch(error){notify(error.message,true);}finally{busy=false;select.disabled=!all.length;dateInput.disabled=false;document.querySelector('#roster').inert=false;updateSummary();}
+  try{validateMarks(students,marks);busy=true;select.disabled=true;dateInput.disabled=true;document.querySelector('#roster').inert=true;updateSummary();const result=await ctx.provider.save(assignment,date,students,structuredClone(marks),revision);revision=result.revision;savedAt=result.updatedAt;if(result.marks)marks=result.marks;if(result.blockPeriods)blockPeriods=result.blockPeriods;dirty=false;notify(isDemo?'บันทึกข้อมูลทดลองสำเร็จ (เฉพาะแท็บนี้)':'บันทึกสำเร็จ');}catch(error){notify(error.message,true);}finally{busy=false;select.disabled=!all.length;dateInput.disabled=false;document.querySelector('#roster').inert=false;updateSummary();}
  });
  window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
  document.addEventListener('click',event=>{const a=event.target.closest('a[href]');if(a&&dirty&&!canLeave())event.preventDefault();});
