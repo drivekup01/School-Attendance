@@ -21,7 +21,7 @@ export function fitReportColumns(sheet,rows){
  row.eachCell((cell,index)=>{const available=Math.max(20,sheet.getColumn(index).width*7-14),count=String(cell.value??'').split(/\r?\n/).reduce((n,line)=>n+Math.max(1,Math.ceil(measure(line,rowNumber===1)/available)),0);lines=Math.max(lines,count);});row.height=Math.max(rowNumber===1?30:24,lines*19+8);});
 }
 let excelReady;
-async function excel(){
+export async function excel(){
  if(!excelReady)excelReady=new Promise((resolve,reject)=>{if(window.ExcelJS)return resolve(window.ExcelJS);const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';s.onload=()=>resolve(window.ExcelJS);s.onerror=()=>{excelReady=null;s.remove();reject(Error('โหลดเครื่องมือ Excel ไม่สำเร็จ กรุณาลองใหม่ หรือส่งออก CSV'));};document.head.append(s);});
  return excelReady;
 }

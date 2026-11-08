@@ -1,6 +1,6 @@
 import {roleLabels} from './school-roles.js?v=20261107-permissions1';
 import {settings} from './settings.js?v=20261031-student1';
-import {isDemo,url} from './session.js?v=20261108-block1';
+import {isDemo,url} from './session.js?v=20261108-pp5-1';
 import {escapeHTML as e} from './core.js?v=20261031-student1';
 import {icon} from './icons.js?v=20261031-student1';
 export const pages=[['index','home','หน้าหลัก'],['morning','morning','เข้าแถวเช้า'],['subject','subject','รายวิชา / สอนแทน'],['behavior','behavior','ความประพฤติ'],['reports','reports','รายงาน / ส่งออก'],['admin','shield','ผู้ดูแลระบบ']];
@@ -32,4 +32,4 @@ export function empty(title,body,action=''){return `<div class="empty"><div clas
 let timer;
 export function notify(text,error=false){const t=document.querySelector('#toast');t.textContent=text;t.classList.toggle('error',error);t.hidden=false;clearTimeout(timer);timer=setTimeout(()=>{t.hidden=true;},6000);}
 export function friendlyError(error){if(error.code==='auth/popup-blocked')return 'เบราว์เซอร์บล็อกหน้าต่างเข้าสู่ระบบ กรุณาอนุญาตป๊อปอัปแล้วลองใหม่';if(error.code==='auth/popup-closed-by-user')return 'ยกเลิกการเข้าสู่ระบบแล้ว';if(error.code==='auth/unauthorized-domain')return 'โดเมนนี้ยังไม่ได้รับอนุญาตใน Firebase Authentication';return error.message||'ดำเนินการไม่สำเร็จ กรุณาลองใหม่';}
-export async function boot(page,render){shell(page);try{const {context}=await import('./session.js?v=20261108-block1');const ctx=await context(page);setIdentity(ctx.user);await render(ctx);}catch(error){document.querySelector('#pageContent').innerHTML=empty('ยังโหลดข้อมูลไม่ได้',friendlyError(error),'<button class="button" onclick="location.reload()">ลองใหม่</button> <button id="changeAccount" class="button secondary">เข้าสู่ระบบ / เปลี่ยนบัญชี</button>');document.querySelector('#changeAccount').addEventListener('click',()=>document.querySelector('#authButton').click());}}
+export async function boot(page,render){shell(page);try{const {context}=await import('./session.js?v=20261108-pp5-1');const ctx=await context(page);setIdentity(ctx.user);await render(ctx);}catch(error){document.querySelector('#pageContent').innerHTML=empty('ยังโหลดข้อมูลไม่ได้',friendlyError(error),'<button class="button" onclick="location.reload()">ลองใหม่</button> <button id="changeAccount" class="button secondary">เข้าสู่ระบบ / เปลี่ยนบัญชี</button>');document.querySelector('#changeAccount').addEventListener('click',()=>document.querySelector('#authButton').click());}}
