@@ -14,6 +14,7 @@ async function liveAdmin(db,tx,a){
 const {timetable,selectClasses}=require('./class-catalog');
 const {validateRoster,replaceRoster}=require('./roster-import');
 async function service(db,T,request,now=new Date()){
+ if(['rosterClasses','rosterStudents','moveStudent'].includes(request.data?.method))return require('./student-transfer').service(db,T,request,now);
  const a=await actor(db,request);if(!a.admin)fail('permission-denied','ใช้ได้เฉพาะผู้ดูแลระบบเช็คชื่อ');
  const input=request.data||{},allowed={previewClearAttendance:['method','classId','date','kind'],clearAttendance:['method','classId','date','kind','token','requestId'],replaceRoster:['method','classId','academicYear','term','label','students'],list:['method'],students:['method','classId'],saveClass:['method','item'],saveStudent:['method','classId','item'],saveAssignment:['method','item'],saveMarks:['method','assignmentId','date','marks','revisions']};
  if(!Object.hasOwn(allowed,input.method)||Object.keys(input).some(k=>!allowed[input.method].includes(k)))fail('invalid-argument','ข้อมูลคำขอไม่ถูกต้อง');
