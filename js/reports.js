@@ -1,6 +1,6 @@
 import {mountReportViews} from './report-views.js?v=20261108-pp5-5';
 import {mountSubjectTermReport} from './subject-term-report.js?v=20261108-pp5-5';
-import {boot,heading,empty,notify} from './shell.js?v=20261108-clear1';
+import {boot,heading,empty,notify} from './shell.js?v=20261111-transfer1';
 import {today,validateRange,escapeHTML as e} from './core.js?v=20261031-student1';
 import {icon} from './icons.js?v=20261031-student1';
 import {isDemo} from './session.js?v=20261108-clear1';

@@ -1,6 +1,6 @@
 import {attendanceMessage} from './attendance-message.js?v=20261108-telegram1';
 import {displayDayFirst} from './date-input.js?v=20261031-student1';
-import {heading,empty,notify} from './shell.js?v=20261108-clear1';
+import {heading,empty,notify} from './shell.js?v=20261111-transfer1';
 import {today,thaiDate,assignmentsOn,counts,statuses,escapeHTML as e,validateMarks,validDate} from './core.js?v=20261031-student1';
 import {icon} from './icons.js?v=20261031-student1';
 import {isDemo} from './session.js?v=20261108-clear1';
